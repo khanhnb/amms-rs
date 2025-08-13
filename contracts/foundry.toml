@@ -1,5 +1,5 @@
 [profile.default]
 optimizer = false
-evm_version = "cancun"
+evm_version = "paris"
 remappings = ["forge-std=lib/forge-std/src/"]
 fs_permissions = [{ access = "read-write", path = "./" }]

@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../../lib/BytesLib.sol";
+import "../utils/BytesLib.sol";
 
 /**
  * @dev This contract is not meant to be deployed. Instead, use a static call with the

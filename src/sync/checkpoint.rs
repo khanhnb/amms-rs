@@ -1,15 +1,19 @@
 use crate::amms::{
-    amm::AMM,
+    amm::{AutomatedMarketMaker, AMM},
     balancer::BalancerFactory,
     error::{AMMError, CheckpointError},
     factory::Factory,
     uniswap_v2::UniswapV2Factory,
     uniswap_v3::UniswapV3Factory,
 };
-use alloy::providers::{Network, Provider};
+use alloy::{
+    primitives::Address,
+    providers::{Network, Provider},
+};
 use indicatif::ProgressBar;
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashSet,
     fs::read_to_string,
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
@@ -75,21 +79,29 @@ where
     let checkpoint: Checkpoint =
         serde_json::from_str(read_to_string(&path_to_checkpoint)?.as_str())?;
 
+    let mut discovered_amms: HashSet<Address> =
+        HashSet::from_iter(checkpoint.amms.iter().map(|f| f.address()));
+
     let mut aggregated_amms = checkpoint.amms;
 
-    // Sync all pools from the since synced block
-    aggregated_amms.extend(
-        get_new_amms_from_range(
-            &checkpoint.factory,
-            checkpoint.block_number,
-            current_block,
-            provider.clone(),
-            pb,
-        )
-        .await?,
-    );
+    // Discover all pools from the since synced block
+    for amm in get_new_amms_from_range(
+        &checkpoint.factory,
+        checkpoint.block_number,
+        current_block,
+        provider.clone(),
+        pb,
+    )
+    .await?
+    {
+        if discovered_amms.contains(&amm.address()) {
+            continue;
+        }
+        discovered_amms.insert(amm.address());
+        aggregated_amms.push(amm);
+    }
 
-    //update the sync checkpoint
+    // Update the checkpoint
     construct_checkpoint(
         &checkpoint.factory,
         &aggregated_amms,

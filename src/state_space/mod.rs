@@ -20,13 +20,18 @@ use async_stream::stream;
 use cache::StateChange;
 use cache::StateChangeCache;
 
+use crate::init_progress;
+use crate::sync::checkpoint;
+use crate::sync::checkpoint::discovery_amms_from_checkpoint;
 use error::StateSpaceError;
 use filters::AMMFilter;
 use filters::PoolFilter;
 use futures::stream::FuturesUnordered;
 use futures::Stream;
 use futures::StreamExt;
+use indicatif::MultiProgress;
 use std::collections::HashSet;
+use std::fs::File;
 use std::pin::Pin;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
@@ -133,6 +138,144 @@ where
         StateSpaceBuilder { filters, ..self }
     }
 
+    pub async fn sync_from_checkpoint(
+        self,
+        checkpoint_folder: &str,
+    ) -> Result<StateSpaceManager<N, P>, AMMError> {
+        tracing::info!(?self.factories, "Syncing AMMs");
+        let mut futures = FuturesUnordered::new();
+
+        let mut filter_set = HashSet::new();
+        for factory in &self.factories {
+            for event in factory.pool_events() {
+                filter_set.insert(event);
+            }
+        }
+
+        for amm in self.amms.iter() {
+            for event in amm.sync_events() {
+                filter_set.insert(event);
+            }
+        }
+
+        let block_filter = Filter::new().event_signature(FilterSet::from(
+            filter_set.into_iter().collect::<Vec<FixedBytes<32>>>(),
+        ));
+
+        let current_block: u64 = self.provider.get_block_number().await?;
+        let multi_progress = MultiProgress::new();
+
+        for factory in self.factories {
+            let provider = self.provider.clone();
+            let filters = self.filters.clone();
+            let amm_checkpoint_path = format!("{}/{}.json", checkpoint_folder, factory.address());
+            let discovery_pb = multi_progress.add(init_progress!(
+                0,
+                &format!("Discovery AMM {}", factory.address())
+            ));
+            let sync_pb = multi_progress.add(init_progress!(
+                0,
+                &format!("Sync AMM {}", factory.address())
+            ));
+
+            futures.push(tokio::spawn(async move {
+                let mut discovered_amms = vec![];
+                if File::open(&amm_checkpoint_path).is_err() {
+                    checkpoint::construct_checkpoint(
+                        &factory,
+                        &discovered_amms,
+                        factory.creation_block(),
+                        &amm_checkpoint_path,
+                    )?;
+                }
+                discovered_amms = discovery_amms_from_checkpoint(
+                    &amm_checkpoint_path,
+                    provider.clone(),
+                    Some(&discovery_pb),
+                )
+                .await?;
+
+                // Create a checkpoint
+                checkpoint::construct_checkpoint(
+                    &factory,
+                    &discovered_amms,
+                    current_block,
+                    &amm_checkpoint_path,
+                )?;
+
+                // Apply discovery filters
+                for filter in filters.iter() {
+                    if filter.stage() == filters::FilterStage::Discovery {
+                        let pre_filter_len = discovered_amms.len();
+                        discovered_amms = filter.filter(discovered_amms).await?;
+
+                        info!(
+                            target: "state_space::sync",
+                            factory = %factory.address(),
+                            pre_filter_len,
+                            post_filter_len = discovered_amms.len(),
+                            filter = ?filter,
+                            "Discovery filter"
+                        );
+                    }
+                }
+
+                //sync data
+                discovered_amms = factory
+                    .sync(
+                        discovered_amms,
+                        current_block.into(),
+                        provider.clone(),
+                        Some(&sync_pb),
+                    )
+                    .await?;
+
+                // Apply sync filters
+                for filter in filters.iter() {
+                    if filter.stage() == filters::FilterStage::Sync {
+                        let pre_filter_len = discovered_amms.len();
+                        discovered_amms = filter.filter(discovered_amms).await?;
+
+                        info!(
+                            target: "state_space::sync",
+                            factory = %factory.address(),
+                            pre_filter_len,
+                            post_filter_len = discovered_amms.len(),
+                            filter = ?filter,
+                            "Sync filter"
+                        );
+                    }
+                }
+
+                // Not necessary?
+                checkpoint::construct_checkpoint(
+                    &factory,
+                    &discovered_amms,
+                    current_block,
+                    &amm_checkpoint_path,
+                )?;
+                Ok::<Vec<AMM>, AMMError>(discovered_amms)
+            }));
+        }
+
+        let mut state_space = StateSpace::default();
+
+        while let Some(res) = futures.next().await {
+            let synced_amms = res??;
+            for amm in synced_amms {
+                state_space.state.insert(amm.address(), amm);
+            }
+        }
+
+        Ok(StateSpaceManager {
+            latest_block: Arc::new(AtomicU64::new(self.latest_block)),
+            state: Arc::new(RwLock::new(state_space)),
+            block_filter,
+            provider: self.provider,
+            phantom: PhantomData,
+        })
+    }
+
     pub async fn sync(self) -> Result<StateSpaceManager<N, P>, AMMError> {
         let chain_tip = BlockId::from(self.provider.get_block_number().await?);
         let factories = self.factories.clone();
@@ -168,7 +311,8 @@ where
 
             let extension = amm_variants.remove(&factory.variant());
             futures.push(tokio::spawn(async move {
-                let mut discovered_amms = factory.discover(chain_tip, provider.clone()).await?;
+                let mut discovered_amms =
+                    factory.discover(chain_tip, provider.clone(), None).await?;
 
                 if let Some(amms) = extension {
                     discovered_amms.extend(amms);
@@ -191,7 +335,9 @@ where
                     }
                 }
 
-                discovered_amms = factory.sync(discovered_amms, chain_tip, provider).await?;
+                discovered_amms = factory
+                    .sync(discovered_amms, chain_tip, provider, None)
+                    .await?;
 
                 // Apply sync filters
                 for filter in filters.iter() {

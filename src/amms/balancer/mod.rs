@@ -27,6 +27,7 @@ use super::{
     float::u256_to_float,
     Token,
 };
+use indicatif::ProgressBar;
 
 sol! {
     #[derive(Debug, PartialEq, Eq)]
@@ -401,6 +402,7 @@ impl DiscoverySync for BalancerFactory {
         &self,
         to_block: BlockId,
         provider: P,
+        _pb: Option<&ProgressBar>,
     ) -> impl Future<Output = Result<Vec<AMM>, AMMError>>
     where
         N: Network,
@@ -419,6 +421,7 @@ impl DiscoverySync for BalancerFactory {
         amms: Vec<AMM>,
         to_block: BlockId,
         provider: P,
+        _pb: Option<&ProgressBar>,
     ) -> impl Future<Output = Result<Vec<AMM>, AMMError>>
     where
         N: Network,

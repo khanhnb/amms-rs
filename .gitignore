@@ -22,3 +22,9 @@ contracts/src/flattened/
 
 # intellij 
 *.idea/
+
+# dev files
+mantle
+Makefile
+contracts/Makefile
+

@@ -12,6 +12,7 @@ use super::{
     Token,
 };
 
+use crate::{finish_progress, update_progress};
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -22,6 +23,7 @@ use alloy::{
     sol_types::{SolCall, SolEvent, SolValue},
 };
 use futures::{stream::FuturesUnordered, StreamExt};
+use indicatif::ProgressBar;
 use itertools::Itertools;
 use rug::Float;
 use serde::{Deserialize, Serialize};
@@ -80,7 +82,9 @@ pub struct UniswapV2Pool {
     pub address: Address,
     pub token_a: Token,
     pub token_b: Token,
+    #[serde(skip_serializing, default)] // only serialize static info
     pub reserve_0: u128,
+    #[serde(skip_serializing, default)]
     pub reserve_1: u128,
     pub fee: usize,
 }
@@ -385,18 +389,22 @@ impl UniswapV2Factory {
         factory_address: Address,
         block_number: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> Result<Vec<Address>, AMMError>
     where
         N: Network,
         P: Provider<N> + Clone,
     {
         let factory = IUniswapV2FactoryInstance::new(factory_address, provider.clone());
+        let mut cur_progress = 0;
         let pairs_length = factory
             .allPairsLength()
             .call()
             .block(block_number)
             .await?
             .to::<usize>();
+
+        pb.iter().for_each(|f| f.set_length(pairs_length as u64));
 
         let step = 766;
         let mut futures_unordered = FuturesUnordered::new();
@@ -421,12 +429,18 @@ impl UniswapV2Factory {
         let mut pairs = Vec::new();
         while let Some(res) = futures_unordered.next().await {
             let tokens = res?;
+            cur_progress += tokens.len() as u64;
+            pb.iter().for_each(|f| f.set_position(cur_progress));
             for token in tokens {
                 if !token.is_zero() {
                     pairs.push(token);
                 }
             }
         }
+
+        pb.iter().for_each(|f| {
+            finish_progress!(f);
+        });
 
         Ok(pairs)
     }
@@ -435,11 +449,14 @@ impl UniswapV2Factory {
         amms: Vec<AMM>,
         block_number: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> Result<Vec<AMM>, AMMError>
     where
         N: Network,
         P: Provider<N> + Clone,
     {
+        let mut cur_progress = 0;
+        pb.iter().for_each(|f| f.set_length(amms.len() as u64));
         let step = 120;
         let pairs = amms
             .iter()
@@ -475,6 +492,10 @@ impl UniswapV2Factory {
 
         while let Some(res) = futures_unordered.next().await {
             let (group, return_data) = res?;
+            cur_progress += return_data.len() as u64;
+            pb.iter().for_each(|f| {
+                update_progress!(f, cur_progress);
+            });
             for (pool_data, pool_address) in return_data.iter().zip(group.iter()) {
                 // If the pool token A is not zero, signaling that the pool data was polulated
 
@@ -506,6 +527,10 @@ impl UniswapV2Factory {
                 }
             })
             .collect();
+
+        pb.iter().for_each(|f| {
+            finish_progress!(f);
+        });
 
         Ok(amms)
     }
@@ -544,6 +569,7 @@ impl DiscoverySync for UniswapV2Factory {
         &self,
         to_block: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> impl Future<Output = Result<Vec<AMM>, AMMError>>
     where
         N: Network,
@@ -558,7 +584,8 @@ impl DiscoverySync for UniswapV2Factory {
         let provider = provider.clone();
         async move {
             let pairs =
-                UniswapV2Factory::get_all_pairs(self.address, to_block, provider.clone()).await?;
+                UniswapV2Factory::get_all_pairs(self.address, to_block, provider.clone(), pb)
+                    .await?;
 
             Ok(pairs
                 .into_iter()
@@ -581,6 +608,7 @@ impl DiscoverySync for UniswapV2Factory {
         amms: Vec<AMM>,
         to_block: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> impl Future<Output = Result<Vec<AMM>, AMMError>>
     where
         N: Network,
@@ -592,7 +620,7 @@ impl DiscoverySync for UniswapV2Factory {
             "Syncing all pools"
         );
 
-        UniswapV2Factory::sync_all_pools(amms, to_block, provider)
+        UniswapV2Factory::sync_all_pools(amms, to_block, provider, pb)
     }
 }
 

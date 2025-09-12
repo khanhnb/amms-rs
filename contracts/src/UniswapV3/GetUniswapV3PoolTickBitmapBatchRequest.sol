@@ -24,7 +24,7 @@ contract GetUniswapV3PoolTickBitmapBatchRequest {
             TickBitmapInfo memory info = allPoolInfo[i];
             IUniswapV3PoolState pool = IUniswapV3PoolState(info.pool);
 
-            uint256[] memory tickBitmaps = new uint256[](uint16(info.maxWord - info.minWord) + 1);
+            uint256[] memory tickBitmaps = new uint256[](2* (uint16(info.maxWord - info.minWord) + 1));
 
             uint256 wordIdx = 0;
             for (int16 j = info.minWord; j <= info.maxWord; ++j) {
@@ -40,6 +40,7 @@ contract GetUniswapV3PoolTickBitmapBatchRequest {
                 tickBitmaps[wordIdx] = tickBitmap;
                 ++wordIdx;
             }
+
 
             assembly {
                 mstore(tickBitmaps, wordIdx)

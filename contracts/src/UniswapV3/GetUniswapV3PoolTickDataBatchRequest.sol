@@ -1,12 +1,16 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "../../lib/BytesLib.sol";
+
 /**
  * @dev This contract is not meant to be deployed. Instead, use a static call with the
  *       deployment bytecode as payload.
  */
 
 contract GetUniswapV3PoolTickDataBatchRequest {
+    using BytesLib for bytes;
+
     struct TickDataInfo {
         address pool;
         int24[] ticks;
@@ -24,14 +28,30 @@ contract GetUniswapV3PoolTickDataBatchRequest {
         for (uint256 i = 0; i < allPoolInfo.length; ++i) {
             Info[] memory tickInfo = new Info[](allPoolInfo[i].ticks.length);
             for (uint256 j = 0; j < allPoolInfo[i].ticks.length; ++j) {
-                IUniswapV3PoolState.Info memory tick = IUniswapV3PoolState(
-                    allPoolInfo[i].pool
-                ).ticks(allPoolInfo[i].ticks[j]);
+                // IUniswapV3PoolState.Info memory tick = IUniswapV3PoolState(
+                //     allPoolInfo[i].pool
+                // ).ticks(allPoolInfo[i].ticks[j]);
 
+                // work around - some AMMs have different return data struct;
+                // Ex: https://mantlescan.xyz/address/0xF8090C06C9086ca9aBa39a89D6792291d0a06fd2
+                (bool success, bytes memory returnData) = allPoolInfo[i]
+                    .pool
+                    .call(
+                        abi.encodeWithSignature(
+                            "ticks(int24)",
+                            allPoolInfo[i].ticks[j]
+                        )
+                    );
+                if (!success) revert("ticks(int24) failed");
+
+                (uint128 liquidityGross, int128 liquidityNet) = abi.decode(
+                    returnData,
+                    (uint128, int128)
+                );
                 tickInfo[j] = Info({
-                    liquidityGross: tick.liquidityGross,
-                    liquidityNet: tick.liquidityNet,
-                    initialized: tick.initialized
+                    liquidityGross: liquidityGross,
+                    liquidityNet: liquidityNet,
+                    initialized: returnData[returnData.length - 1] != 0x00
                 });
             }
             tickInfoReturn[i] = tickInfo;
@@ -48,35 +68,4 @@ contract GetUniswapV3PoolTickDataBatchRequest {
             return(dataStart, sub(msize(), dataStart))
         }
     }
-}
-
-/// @title Pool state that can change
-/// @notice These methods compose the pool's state, and can change with any frequency including multiple times
-/// per transaction
-interface IUniswapV3PoolState {
-    struct Info {
-        // the total position liquidity that references this tick
-        uint128 liquidityGross;
-        // amount of net liquidity added (subtracted) when tick is crossed from left to right (right to left),
-        int128 liquidityNet;
-        // fee growth per unit of liquidity on the _other_ side of this tick (relative to the current tick)
-        // only has relative meaning, not absolute — the value depends on when the tick is initialized
-        uint256 feeGrowthOutside0X128;
-        uint256 feeGrowthOutside1X128;
-        // the cumulative tick value on the other side of the tick
-        int56 tickCumulativeOutside;
-        // the seconds per unit of liquidity on the _other_ side of this tick (relative to the current tick)
-        // only has relative meaning, not absolute — the value depends on when the tick is initialized
-        uint160 secondsPerLiquidityOutsideX128;
-        // the seconds spent on the other side of the tick (relative to the current tick)
-        // only has relative meaning, not absolute — the value depends on when the tick is initialized
-        uint32 secondsOutside;
-        // true iff the tick is initialized, i.e. the value is exactly equivalent to the expression liquidityGross != 0
-        // these 8 bits are set to prevent fresh sstores when crossing newly initialized ticks
-        bool initialized;
-    }
-
-    /// @notice Returns 256 packed tick initialized boolean values. See TickBitmap for more information
-    function tickBitmap(int16 wordPosition) external view returns (uint256);
-    function ticks(int24 tick) external view returns (Info memory);
 }

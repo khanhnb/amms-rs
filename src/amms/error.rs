@@ -3,7 +3,9 @@ use super::{
     uniswap_v3::UniswapV3Error,
 };
 use alloy::{primitives::FixedBytes, transports::TransportErrorKind};
+use std::time::SystemTimeError;
 use thiserror::Error;
+use tokio::task::JoinError;
 
 #[derive(Error, Debug)]
 pub enum AMMError {
@@ -31,6 +33,12 @@ pub enum AMMError {
     UnrecognizedEventSignature(FixedBytes<32>),
     #[error(transparent)]
     JoinError(#[from] tokio::task::JoinError),
+    #[error(transparent)]
+    CheckpointError(#[from] CheckpointError),
+    #[error(transparent)]
+    SerdeJsonError(#[from] serde_json::error::Error),
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
 }
 
 #[derive(Error, Debug)]
@@ -39,4 +47,18 @@ pub enum BatchContractError {
     ContractError(#[from] alloy::contract::Error),
     #[error(transparent)]
     DynABIError(#[from] alloy::dyn_abi::Error),
+}
+
+#[derive(Error, Debug)]
+pub enum CheckpointError {
+    #[error(transparent)]
+    SystemTimeError(#[from] SystemTimeError),
+    #[error(transparent)]
+    SerdeJsonError(#[from] serde_json::error::Error),
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
+    #[error("Error Populating AMM")]
+    ErrorPopulatingAMM,
+    #[error("Join error")]
+    JoinError(#[from] JoinError),
 }

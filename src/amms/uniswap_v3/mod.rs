@@ -4,8 +4,12 @@ use super::{
     factory::{AutomatedMarketMakerFactory, DiscoverySync},
     get_token_decimals, Token,
 };
-use crate::amms::{
-    consts::U256_1, uniswap_v3::GetUniswapV3PoolTickBitmapBatchRequest::TickBitmapInfo,
+use crate::{
+    amms::{
+        consts::{MAX_CODE_SIZE, U256_1},
+        uniswap_v3::GetUniswapV3PoolTickBitmapBatchRequest::TickBitmapInfo,
+    },
+    finish_progress, update_progress,
 };
 use alloy::{
     eips::BlockId,
@@ -18,6 +22,8 @@ use alloy::{
     transports::BoxFuture,
 };
 use futures::{stream::FuturesUnordered, StreamExt};
+use indicatif::ProgressBar;
+use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelDrainRange, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -106,12 +112,14 @@ sol! {
 
 sol! {
     #[sol(rpc)]
+    #[derive(Debug)]
     GetUniswapV3PoolTickBitmapBatchRequest,
     "src/amms/abi/GetUniswapV3PoolTickBitmapBatchRequest.json",
 }
 
 sol! {
     #[sol(rpc)]
+    #[derive(Debug)]
     GetUniswapV3PoolTickDataBatchRequest,
     "src/amms/abi/GetUniswapV3PoolTickDataBatchRequest.json"
 }
@@ -129,12 +137,17 @@ pub struct UniswapV3Pool {
     pub address: Address,
     pub token_a: Token,
     pub token_b: Token,
+    #[serde(skip_serializing, default)] // only serialize static info
     pub liquidity: u128,
+    #[serde(skip_serializing, default)]
     pub sqrt_price: U256,
     pub fee: u32,
+    #[serde(skip_serializing, default)]
     pub tick: i32,
     pub tick_spacing: i32, // TODO: we can make this a u8, tick spacing will never exceed 200
+    #[serde(skip_serializing, default)]
     pub tick_bitmap: HashMap<i16, U256>,
+    #[serde(skip_serializing, default)]
     pub ticks: HashMap<i32, Info>,
 }
 
@@ -595,10 +608,11 @@ impl AutomatedMarketMaker for UniswapV3Pool {
         self.token_b = Token::new(pool.token1().call().await?, provider.clone()).await?;
 
         let mut pool = vec![self.into()];
-        UniswapV3Factory::sync_slot_0(&mut pool, block_number, provider.clone()).await?;
-        UniswapV3Factory::sync_token_decimals(&mut pool, provider.clone()).await?;
-        UniswapV3Factory::sync_tick_bitmaps(&mut pool, block_number, provider.clone()).await?;
-        UniswapV3Factory::sync_tick_data(&mut pool, block_number, provider.clone()).await?;
+        UniswapV3Factory::sync_slot_0(&mut pool, block_number, provider.clone(), None).await?;
+        UniswapV3Factory::sync_token_decimals(&mut pool, provider.clone(), None).await?;
+        UniswapV3Factory::sync_tick_bitmaps(&mut pool, block_number, provider.clone(), None)
+            .await?;
+        UniswapV3Factory::sync_tick_data(&mut pool, block_number, provider.clone(), None).await?;
 
         let AMM::UniswapV3Pool(pool) = pool[0].to_owned() else {
             unreachable!()
@@ -745,13 +759,15 @@ impl UniswapV3Pool {
 pub struct UniswapV3Factory {
     pub address: Address,
     pub creation_block: u64,
+    pub sync_step: u64,
 }
 
 impl UniswapV3Factory {
-    pub fn new(address: Address, creation_block: u64) -> Self {
+    pub fn new(address: Address, creation_block: u64, sync_step: u64) -> Self {
         UniswapV3Factory {
             address,
             creation_block,
+            sync_step,
         }
     }
 
@@ -759,6 +775,7 @@ impl UniswapV3Factory {
         &self,
         block_number: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> Result<Vec<AMM>, AMMError>
     where
         N: Network,
@@ -771,12 +788,17 @@ impl UniswapV3Factory {
         let sync_provider = provider.clone();
         let mut futures = FuturesUnordered::new();
 
-        let sync_step = 100_000;
         let mut latest_block = self.creation_block;
+        let mut cur_progress = 0;
+
+        pb.iter()
+            .for_each(|f| f.set_length(block_number.as_u64().unwrap() - self.creation_block + 1));
+
         while latest_block < block_number.as_u64().unwrap_or_default() {
             let mut block_filter = disc_filter.clone();
             let from_block = latest_block;
-            let to_block = (from_block + sync_step).min(block_number.as_u64().unwrap_or_default());
+            let to_block =
+                (from_block + self.sync_step).min(block_number.as_u64().unwrap_or_default());
 
             block_filter = block_filter.from_block(from_block);
             block_filter = block_filter.to_block(to_block);
@@ -790,12 +812,17 @@ impl UniswapV3Factory {
 
         let mut pools = vec![];
         while let Some(res) = futures.next().await {
+            cur_progress += self.sync_step;
+            pb.iter().for_each(|f| f.set_position(cur_progress));
             let logs = res?;
 
             for log in logs {
                 pools.push(self.create_pool(log)?);
             }
         }
+        pb.iter().for_each(|f| {
+            finish_progress!(f);
+        });
 
         Ok(pools)
     }
@@ -804,13 +831,14 @@ impl UniswapV3Factory {
         mut pools: Vec<AMM>,
         block_number: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> Result<Vec<AMM>, AMMError>
     where
         N: Network,
         P: Provider<N> + Clone,
     {
-        UniswapV3Factory::sync_slot_0(&mut pools, block_number, provider.clone()).await?;
-        UniswapV3Factory::sync_token_decimals(&mut pools, provider.clone()).await?;
+        UniswapV3Factory::sync_slot_0(&mut pools, block_number, provider.clone(), pb).await?;
+        UniswapV3Factory::sync_token_decimals(&mut pools, provider.clone(), pb).await?;
 
         pools = pools
             .par_drain(..)
@@ -824,8 +852,8 @@ impl UniswapV3Factory {
             })
             .collect();
 
-        UniswapV3Factory::sync_tick_bitmaps(&mut pools, block_number, provider.clone()).await?;
-        UniswapV3Factory::sync_tick_data(&mut pools, block_number, provider.clone()).await?;
+        UniswapV3Factory::sync_tick_bitmaps(&mut pools, block_number, provider.clone(), pb).await?;
+        UniswapV3Factory::sync_tick_data(&mut pools, block_number, provider.clone(), pb).await?;
 
         Ok(pools)
     }
@@ -833,6 +861,7 @@ impl UniswapV3Factory {
     async fn sync_token_decimals<N, P>(
         pools: &mut [AMM],
         provider: P,
+        _pb: Option<&ProgressBar>,
     ) -> Result<(), BatchContractError>
     where
         N: Network,
@@ -869,12 +898,19 @@ impl UniswapV3Factory {
         pools: &mut [AMM],
         block_number: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> Result<(), AMMError>
     where
         N: Network,
         P: Provider<N> + Clone,
     {
-        let step = 255;
+        pb.iter().for_each(|f| {
+            f.reset();
+            f.set_length(pools.len() as u64);
+            f.set_message("sync_slot_0 AMM");
+        });
+        let mut cur_progress = 0;
+        let step = 76;
 
         let mut futures = FuturesUnordered::new();
         pools.chunks_mut(step).for_each(|group| {
@@ -897,6 +933,10 @@ impl UniswapV3Factory {
 
         while let Some(res) = futures.next().await {
             let (pools, return_data) = res?;
+            cur_progress += pools.len();
+            pb.iter().for_each(|f| {
+                update_progress!(f, cur_progress);
+            });
             let return_data = <Vec<(i32, u128, U256)> as SolValue>::abi_decode(&return_data)?;
 
             for (slot_0_data, pool) in return_data.iter().zip(pools.iter_mut()) {
@@ -910,6 +950,10 @@ impl UniswapV3Factory {
             }
         }
 
+        pb.iter().for_each(|f| {
+            finish_progress!(f);
+        });
+
         Ok(())
     }
 
@@ -917,28 +961,38 @@ impl UniswapV3Factory {
         pools: &mut [AMM],
         block_number: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> Result<(), AMMError>
     where
         N: Network,
         P: Provider<N> + Clone,
     {
+        pb.iter().for_each(|f| {
+            f.reset();
+            f.set_message("Sync tick bitmaps AMM");
+            f.set_length(pools.len() as u64);
+        });
         let mut futures: FuturesUnordered<BoxFuture<'_, _>> = FuturesUnordered::new();
 
-        let max_range = 6900;
+        let mut remaining_code_size = MAX_CODE_SIZE;
         let mut group_range = 0;
         let mut group = vec![];
 
+        remaining_code_size -= 32 * 2; // offset + array length
         for pool in pools.iter() {
+            remaining_code_size -= 32 * 2; // offset + array length
+
             let AMM::UniswapV3Pool(uniswap_v3_pool) = pool else {
                 unreachable!()
             };
 
             let mut min_word = tick_to_word(MIN_TICK, uniswap_v3_pool.tick_spacing);
             let max_word = tick_to_word(MAX_TICK, uniswap_v3_pool.tick_spacing);
-            let mut word_range = max_word - min_word;
+            let mut word_range = max_word - min_word + 1;
 
             while word_range > 0 {
-                let remaining_range = max_range - group_range;
+                // let remaining_range = max_range - group_range;
+                let remaining_range = remaining_code_size / 64 - group_range;
                 let range = word_range.min(remaining_range);
 
                 group.push(TickBitmapInfo {
@@ -947,12 +1001,12 @@ impl UniswapV3Factory {
                     maxWord: (min_word + range) as i16,
                 });
 
-                word_range -= range;
-                min_word += range - 1;
-                group_range += range;
+                word_range -= range + 1;
+                min_word += range + 1;
+                group_range += range + 1;
 
                 // If group is full, fire it off and reset
-                if group_range >= max_range {
+                if group_range * 64 >= remaining_code_size {
                     // if group_range >= max_range || word_range <= 0 {
                     let provider = provider.clone();
                     let pool_info = group.iter().map(|info| info.pool).collect::<Vec<_>>();
@@ -999,9 +1053,15 @@ impl UniswapV3Factory {
             .map(|pool| (pool.address(), pool))
             .collect::<HashMap<Address, &mut AMM>>();
 
+        let mut pool_progress = HashSet::<Address>::new();
+
         while let Some(res) = futures.next().await {
             let (pools, return_data) = res?;
             let return_data = <Vec<Vec<U256>> as SolValue>::abi_decode(&return_data)?;
+            pool_progress.extend(&pools);
+            pb.iter().for_each(|f| {
+                update_progress!(f, pool_progress.len() as u64);
+            });
 
             for (tick_bitmaps, pool_address) in return_data.iter().zip(pools.iter()) {
                 let pool = pool_set.get_mut(pool_address).unwrap();
@@ -1018,6 +1078,11 @@ impl UniswapV3Factory {
                 }
             }
         }
+
+        pb.iter().for_each(|f| {
+            finish_progress!(f);
+        });
+
         Ok(())
     }
 
@@ -1026,6 +1091,7 @@ impl UniswapV3Factory {
         pools: &mut [AMM],
         block_number: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> Result<(), AMMError>
     where
         N: Network,
@@ -1074,6 +1140,11 @@ impl UniswapV3Factory {
                 }
             })
             .collect::<Vec<(Address, Vec<Signed<24, 1>>)>>();
+        pb.iter().for_each(|f| {
+            f.reset();
+            f.set_message("Sync tick data AMM");
+            f.set_length(pool_ticks.len() as u64);
+        });
 
         let mut futures: FuturesUnordered<BoxFuture<'_, _>> = FuturesUnordered::new();
         let max_ticks = 60;
@@ -1132,9 +1203,14 @@ impl UniswapV3Factory {
             .iter_mut()
             .map(|pool| (pool.address(), pool))
             .collect::<HashMap<Address, &mut AMM>>();
+        let mut pool_progress = HashSet::<Address>::new();
 
         while let Some(res) = futures.next().await {
             let (tick_info, return_data) = res?;
+            pool_progress.extend(tick_info.iter().map(|m| m.pool).collect_vec());
+            pb.iter().for_each(|f| {
+                update_progress!(f, pool_progress.len() as u64);
+            });
             let return_data = <Vec<Vec<(bool, u128, i128)>> as SolValue>::abi_decode(&return_data)?;
 
             for (tick_bitmaps, tick_info) in return_data.iter().zip(tick_info.iter()) {
@@ -1155,6 +1231,9 @@ impl UniswapV3Factory {
                 }
             }
         }
+        pb.iter().for_each(|f| {
+            finish_progress!(f);
+        });
         Ok(())
     }
 }
@@ -1203,6 +1282,7 @@ impl DiscoverySync for UniswapV3Factory {
         &self,
         to_block: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> impl Future<Output = Result<Vec<AMM>, AMMError>>
     where
         N: Network,
@@ -1214,7 +1294,7 @@ impl DiscoverySync for UniswapV3Factory {
             "Discovering all pools"
         );
 
-        self.get_all_pools(to_block, provider.clone())
+        self.get_all_pools(to_block, provider.clone(), pb)
     }
 
     fn sync<N, P>(
@@ -1222,6 +1302,7 @@ impl DiscoverySync for UniswapV3Factory {
         amms: Vec<AMM>,
         to_block: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> impl Future<Output = Result<Vec<AMM>, AMMError>>
     where
         N: Network,
@@ -1233,7 +1314,7 @@ impl DiscoverySync for UniswapV3Factory {
             "Syncing all pools"
         );
 
-        UniswapV3Factory::sync_all_pools(amms, to_block, provider)
+        UniswapV3Factory::sync_all_pools(amms, to_block, provider, pb)
     }
 }
 

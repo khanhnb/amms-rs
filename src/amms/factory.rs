@@ -12,6 +12,7 @@ use alloy::{
     rpc::types::eth::Log,
 };
 use eyre::Result;
+use indicatif::ProgressBar;
 use serde::{Deserialize, Serialize};
 use std::{
     future::Future,
@@ -23,6 +24,7 @@ pub trait DiscoverySync {
         &self,
         to_block: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> impl Future<Output = Result<Vec<AMM>, AMMError>>
     where
         N: Network,
@@ -33,6 +35,7 @@ pub trait DiscoverySync {
         amms: Vec<AMM>,
         to_block: BlockId,
         provider: P,
+        pb: Option<&ProgressBar>,
     ) -> impl Future<Output = Result<Vec<AMM>, AMMError>>
     where
         N: Network,
@@ -125,23 +128,23 @@ macro_rules! factory {
 
 
         impl Factory {
-            pub async fn discover< N, P>(&self, to_block: BlockId, provider: P) -> Result<Vec<AMM>, AMMError>
+            pub async fn discover<N, P>(&self, to_block: BlockId, provider: P, pb: Option<&ProgressBar>) -> Result<Vec<AMM>, AMMError>
             where
                                 N: Network,
                 P: Provider<N> + Clone,
             {
                 match self {
-                    $(Factory::$factory_type(factory) => factory.discover(to_block, provider).await,)+
+                    $(Factory::$factory_type(factory) => factory.discover(to_block, provider, pb).await,)+
                 }
             }
 
-            pub async fn sync< N, P>(&self, amms: Vec<AMM>, to_block: BlockId, provider: P) -> Result<Vec<AMM>, AMMError>
+            pub async fn sync< N, P>(&self, amms: Vec<AMM>, to_block: BlockId, provider: P, pb: Option<&ProgressBar>) -> Result<Vec<AMM>, AMMError>
             where
                                 N: Network,
                 P: Provider<N> + Clone,
             {
                 match self {
-                    $(Factory::$factory_type(factory) => factory.sync(amms, to_block, provider).await,)+
+                    $(Factory::$factory_type(factory) => factory.sync(amms, to_block, provider, pb).await,)+
                 }
             }
         }

@@ -18,6 +18,7 @@ use std::{
     future::Future,
     hash::{Hash, Hasher},
 };
+use crate::amms::cleo_v2::CleoV2Factory;
 
 pub trait DiscoverySync {
     fn discover<N, P>(
@@ -159,7 +160,7 @@ macro_rules! factory {
     };
 }
 
-factory!(UniswapV2Factory, UniswapV3Factory, BalancerFactory);
+factory!(UniswapV2Factory, UniswapV3Factory, BalancerFactory, CleoV2Factory);
 
 #[derive(Default)]
 pub struct NoopAMM;

@@ -12,6 +12,7 @@ use alloy::{
 use eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
+use crate::amms::cleo_v2::CleoV2Pool;
 
 #[allow(async_fn_in_trait)]
 pub trait AutomatedMarketMaker {
@@ -156,4 +157,4 @@ macro_rules! amm {
     };
 }
 
-amm!(UniswapV2Pool, UniswapV3Pool, ERC4626Vault, BalancerPool);
+amm!(UniswapV2Pool, UniswapV3Pool, ERC4626Vault, BalancerPool, CleoV2Pool);

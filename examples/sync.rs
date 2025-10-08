@@ -5,7 +5,7 @@ use alloy::{
 };
 use alloy_provider::ProviderBuilder;
 use amms::{
-    amms::{uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory},
+    amms::{cleo_v2::CleoV2Factory, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory},
     state_space::StateSpaceBuilder,
 };
 use std::sync::Arc;
@@ -30,19 +30,19 @@ async fn main() -> eyre::Result<()> {
             29969727,
         )
         .into(),
+        // cleo v2
+        CleoV2Factory::new(
+            address!("0xAAA16c016BF556fcD620328f0759252E29b1AB57"),
+            300,
+            34705175,
+        )
+        .into(),
         // Agni - v3
         UniswapV3Factory::new(
             address!("0x25780dc8Fc3cfBD75F33bFDAB65e969b603b2035"),
             110692,
             // 60_000_000,
             10_000,
-        )
-        .into(),
-        // cleo v2
-        UniswapV2Factory::new(
-            address!("0xAAA16c016BF556fcD620328f0759252E29b1AB57"),
-            300,
-            34705175,
         )
         .into(),
         // cleo - v3

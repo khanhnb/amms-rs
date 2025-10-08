@@ -1,6 +1,7 @@
 use crate::amms::{
     amm::{AutomatedMarketMaker, AMM},
     balancer::BalancerFactory,
+    cleo_v2::CleoV2Factory,
     error::{AMMError, CheckpointError},
     factory::Factory,
     uniswap_v2::UniswapV2Factory,
@@ -125,6 +126,7 @@ where
 {
     let factory: Factory = match factory {
         Factory::UniswapV2Factory(f) => UniswapV2Factory::new(f.address, f.fee, from_block).into(),
+        Factory::CleoV2Factory(f) => CleoV2Factory::new(f.address, f.fee, from_block).into(),
         Factory::UniswapV3Factory(f) => {
             UniswapV3Factory::new(f.address, from_block, f.sync_step).into()
         }

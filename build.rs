@@ -15,6 +15,7 @@ const TARGET_CONTRACTS: &[&str] = &[
     "WethValueInPoolsBatchRequest",
     "GetUniswapV2PairsBatchRequest",
     "GetUniswapV2PoolDataBatchRequest",
+    "GetCleoV2PoolDataBatchRequest",
     "GetUniswapV3PoolDataBatchRequest",
     "GetUniswapV3PoolSlot0BatchRequest",
     "GetUniswapV3PoolTickBitmapBatchRequest",

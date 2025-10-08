@@ -16,6 +16,7 @@ pub mod error;
 pub mod factory;
 pub mod float;
 pub mod uniswap_v2;
+pub mod cleo_v2;
 pub mod uniswap_v3;
 
 sol! {

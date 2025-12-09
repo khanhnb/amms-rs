@@ -241,6 +241,14 @@ impl AutomatedMarketMaker for ERC4626Vault {
 
         Ok(self)
     }
+
+    fn token0(&self) -> super::Token {
+        todo!()
+    }
+
+    fn token1(&self) -> super::Token {
+        todo!()
+    }
 }
 
 // TODO: swap calldata

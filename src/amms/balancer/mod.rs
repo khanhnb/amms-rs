@@ -350,6 +350,14 @@ impl AutomatedMarketMaker for BalancerPool {
 
         Ok(self)
     }
+
+    fn token0(&self) -> Token {
+        todo!()
+    }
+
+    fn token1(&self) -> Token {
+        todo!()
+    }
 }
 
 impl BalancerPool {

@@ -206,6 +206,14 @@ impl AutomatedMarketMaker for UniswapV2Pool {
 
         Ok(self)
     }
+
+    fn token0(&self) -> Token {
+        self.token_a.clone()
+    }
+
+    fn token1(&self) -> Token {
+        self.token_b.clone()
+    }
 }
 
 pub fn u128_to_float(num: u128) -> Result<Float, AMMError> {

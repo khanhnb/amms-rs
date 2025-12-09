@@ -620,6 +620,14 @@ impl AutomatedMarketMaker for UniswapV3Pool {
 
         Ok(pool)
     }
+
+    fn token0(&self) -> Token {
+        self.token_a.clone()
+    }
+
+    fn token1(&self) -> Token {
+        self.token_b.clone()
+    }
 }
 
 impl UniswapV3Pool {

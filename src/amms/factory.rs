@@ -4,6 +4,7 @@ use super::{
     balancer::BalancerFactory,
     error::AMMError,
 };
+use crate::amms::cleo_v2::CleoV2Factory;
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -18,7 +19,6 @@ use std::{
     future::Future,
     hash::{Hash, Hasher},
 };
-use crate::amms::cleo_v2::CleoV2Factory;
 
 pub trait DiscoverySync {
     fn discover<N, P>(
@@ -160,7 +160,12 @@ macro_rules! factory {
     };
 }
 
-factory!(UniswapV2Factory, UniswapV3Factory, BalancerFactory, CleoV2Factory);
+factory!(
+    UniswapV2Factory,
+    UniswapV3Factory,
+    BalancerFactory,
+    CleoV2Factory
+);
 
 #[derive(Default)]
 pub struct NoopAMM;
@@ -212,5 +217,13 @@ impl AutomatedMarketMaker for NoopAMM {
         P: Provider<N> + Clone,
     {
         unreachable!()
+    }
+
+    fn token0(&self) -> super::Token {
+        todo!()
+    }
+
+    fn token1(&self) -> super::Token {
+        todo!()
     }
 }

@@ -2,6 +2,7 @@ use super::{
     balancer::BalancerPool, erc_4626::ERC4626Vault, error::AMMError, uniswap_v2::UniswapV2Pool,
     uniswap_v3::UniswapV3Pool,
 };
+use crate::amms::{cleo_v2::CleoV2Pool, Token};
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -12,7 +13,6 @@ use alloy::{
 use eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
-use crate::amms::cleo_v2::CleoV2Pool;
 
 #[allow(async_fn_in_trait)]
 pub trait AutomatedMarketMaker {
@@ -27,6 +27,10 @@ pub trait AutomatedMarketMaker {
 
     /// Returns a list of token addresses used in the AMM
     fn tokens(&self) -> Vec<Address>;
+
+    fn token0(&self) -> Token;
+
+    fn token1(&self) -> Token;
 
     /// Calculates the price of `base_token` in terms of `quote_token`
     fn calculate_price(&self, base_token: Address, quote_token: Address) -> Result<f64, AMMError>;
@@ -101,6 +105,18 @@ macro_rules! amm {
                 }
             }
 
+            fn token0(&self) -> Token {
+                match self {
+                    $(AMM::$pool_type(pool) => pool.token0(),)+
+                }
+            }
+
+            fn token1(&self) -> Token {
+                match self {
+                    $(AMM::$pool_type(pool) => pool.token1(),)+
+                }
+            }
+
             fn calculate_price(&self, base_token: Address, quote_token: Address) -> Result<f64, AMMError> {
                 match self {
                     $(AMM::$pool_type(pool) => pool.calculate_price(base_token, quote_token),)+
@@ -157,4 +173,10 @@ macro_rules! amm {
     };
 }
 
-amm!(UniswapV2Pool, UniswapV3Pool, ERC4626Vault, BalancerPool, CleoV2Pool);
+amm!(
+    UniswapV2Pool,
+    UniswapV3Pool,
+    ERC4626Vault,
+    BalancerPool,
+    CleoV2Pool
+);

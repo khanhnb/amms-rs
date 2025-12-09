@@ -187,7 +187,7 @@ impl AutomatedMarketMaker for CleoV2Pool {
         let deployer = IGetCleoV2PoolDataBatchRequestInstance::deploy_builder(
             provider.clone(),
             vec![self.address()],
-            self.address
+            self.address,
         );
 
         let res = deployer.call_raw().block(block_number).await?;
@@ -207,6 +207,14 @@ impl AutomatedMarketMaker for CleoV2Pool {
         // TODO: populate fee?
 
         Ok(self)
+    }
+
+    fn token0(&self) -> Token {
+        self.token_a.clone()
+    }
+
+    fn token1(&self) -> Token {
+        self.token_b.clone()
     }
 }
 
@@ -473,7 +481,7 @@ impl CleoV2Factory {
             let deployer = IGetCleoV2PoolDataBatchRequestInstance::deploy_builder(
                 provider.clone(),
                 group.clone(),
-                factory_address
+                factory_address,
             );
 
             futures_unordered.push(async move {
@@ -591,8 +599,7 @@ impl DiscoverySync for CleoV2Factory {
         let provider = provider.clone();
         async move {
             let pairs =
-                CleoV2Factory::get_all_pairs(self.address, to_block, provider.clone(), pb)
-                    .await?;
+                CleoV2Factory::get_all_pairs(self.address, to_block, provider.clone(), pb).await?;
 
             Ok(pairs
                 .into_iter()

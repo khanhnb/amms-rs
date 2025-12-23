@@ -192,6 +192,7 @@ where
                     &amm_checkpoint_path,
                     provider.clone(),
                     Some(&discovery_pb),
+                    current_block,
                 )
                 .await?;
 
@@ -268,7 +269,7 @@ where
         }
 
         Ok(StateSpaceManager {
-            latest_block: Arc::new(AtomicU64::new(self.latest_block)),
+            latest_block: Arc::new(AtomicU64::new(current_block)),
             state: Arc::new(RwLock::new(state_space)),
             block_filter,
             provider: self.provider,
@@ -379,7 +380,7 @@ where
         }
 
         Ok(StateSpaceManager {
-            latest_block: Arc::new(AtomicU64::new(self.latest_block)),
+            latest_block: Arc::new(AtomicU64::new(chain_tip.as_u64().unwrap())),
             state: Arc::new(RwLock::new(state_space)),
             block_filter,
             provider: self.provider,

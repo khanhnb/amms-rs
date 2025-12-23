@@ -50,6 +50,7 @@ where
                 &amm_checkpoint_path,
                 provider.clone(),
                 Some(&discovery_pb),
+                current_block,
             )
             .await?;
 

@@ -69,14 +69,13 @@ pub async fn discovery_amms_from_checkpoint<N, P, A>(
     path_to_checkpoint: A,
     provider: P,
     pb: Option<&ProgressBar>,
+    current_block: u64,
 ) -> Result<Vec<AMM>, AMMError>
 where
     N: Network,
     P: Provider<N> + Clone + 'static,
     A: AsRef<Path>,
 {
-    let current_block = provider.get_block_number().await?;
-
     let checkpoint: Checkpoint =
         serde_json::from_str(read_to_string(&path_to_checkpoint)?.as_str())?;
 

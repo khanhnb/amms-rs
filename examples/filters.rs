@@ -7,8 +7,9 @@ use alloy::{
 use amms::{
     amms::uniswap_v2::UniswapV2Factory,
     state_space::{
-        filters::whitelist::{PoolWhitelistFilter, TokenWhitelistFilter},
-        StateSpaceBuilder,
+        StateSpaceBuilder, filters::{
+            AMMFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter}
+        }
     },
 };
 use std::sync::Arc;
@@ -45,10 +46,13 @@ async fn main() -> eyre::Result<()> {
        only the whitelisted pools are synced. The `TokenWhitelistFilter` is applied after syncing since pool creation logs
        do not always emit the tokens included in the pool, but this data will always be populated after syncing.
     */
-    let filters = vec![
-        PoolWhitelistFilter::new(vec![address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640")]).into(),
-        TokenWhitelistFilter::new(vec![address!("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")])
-            .into(),
+    let filters: Vec<Box<dyn AMMFilter>> = vec![
+        Box::new(PoolWhitelistFilter::new(vec![address!(
+            "88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"
+        )])),
+        Box::new(TokenWhitelistFilter::new(vec![address!(
+            "A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        )])),
     ];
 
     let _state_space_manager = StateSpaceBuilder::new(provider.clone())

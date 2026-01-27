@@ -2,14 +2,12 @@ use std::collections::{HashMap, HashSet};
 
 use alloy::primitives::{Address, FixedBytes};
 
-use crate::amms::factory::Factory;
-
-use super::filters::PoolFilter;
+use crate::{amms::factory::Factory, state_space::filters::AMMFilter};
 
 #[derive(Debug, Default, Clone)]
 pub struct DiscoveryManager {
     pub factories: HashMap<Address, Factory>,
-    pub pool_filters: Option<Vec<PoolFilter>>,
+    pub pool_filters: Option<Vec<Box<dyn AMMFilter>>>,
     pub token_decimals: HashMap<Address, u8>,
 }
 
@@ -28,7 +26,7 @@ impl DiscoveryManager {
         }
     }
 
-    pub fn with_pool_filters(self, pool_filters: Vec<PoolFilter>) -> Self {
+    pub fn with_pool_filters(self, pool_filters: Vec<Box<dyn AMMFilter>>) -> Self {
         Self {
             pool_filters: Some(pool_filters),
             ..self

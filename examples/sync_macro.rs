@@ -9,11 +9,9 @@ use alloy::{
 use amms::{
     amms::{uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory},
     state_space::{
-        filters::{
-            whitelist::{PoolWhitelistFilter, TokenWhitelistFilter},
-            PoolFilter,
-        },
-        StateSpaceBuilder,
+        StateSpaceBuilder, filters::{
+            AMMFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter}
+        }
     },
     sync,
 };
@@ -24,7 +22,7 @@ async fn main() -> eyre::Result<()> {
     let rpc_endpoint = std::env::var("ETHEREUM_PROVIDER")?;
 
     let client = ClientBuilder::default()
-        .layer(ThrottleLayer::new(500))
+        .layer(ThrottleLayer::new(20))
         .layer(RetryBackoffLayer::new(5, 200, 330))
         .http(rpc_endpoint.parse()?);
 
@@ -38,19 +36,22 @@ async fn main() -> eyre::Result<()> {
             10000835,
         )
         .into(),
-        // UniswapV3
-        UniswapV3Factory::new(
-            address!("1F98431c8aD98523631AE4a59f267346ea31F984"),
-            12369621,
-            10_000,
-        )
-        .into(),
+        // // UniswapV3
+        // UniswapV3Factory::new(
+        //     address!("1F98431c8aD98523631AE4a59f267346ea31F984"),
+        //     12369621,
+        //     10_000,
+        // )
+        // .into(),
     ];
 
-    let filters: Vec<PoolFilter> = vec![
-        PoolWhitelistFilter::new(vec![address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640")]).into(),
-        TokenWhitelistFilter::new(vec![address!("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")])
-            .into(),
+    let filters: Vec<Box<dyn AMMFilter>> = vec![
+        Box::new(PoolWhitelistFilter::new(vec![address!(
+            "88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"
+        )])),
+        Box::new(TokenWhitelistFilter::new(vec![address!(
+            "A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        )])),
     ];
 
     let _state_space_manager = sync!(factories, filters, provider);

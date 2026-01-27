@@ -1,4 +1,4 @@
-use std::{collections::HashMap, marker::PhantomData};
+use std::{collections::HashMap, marker::PhantomData, fmt::Debug};
 
 use super::{AMMFilter, FilterStage};
 use crate::amms::{
@@ -21,6 +21,8 @@ sol! {
     "src/amms/abi/WethValueInPoolsBatchRequest.json"
 }
 
+
+#[derive(Clone)]
 pub struct ValueFilter<const CHUNK_SIZE: usize, N, P>
 where
     N: Network,
@@ -82,7 +84,7 @@ where
 impl<const CHUNK_SIZE: usize, N, P> AMMFilter for ValueFilter<CHUNK_SIZE, N, P>
 where
     N: Network,
-    P: Provider<N> + Clone,
+    P: Provider<N> + Clone + 'static,
 {
     async fn filter(&self, amms: Vec<AMM>) -> Result<Vec<AMM>, AMMError> {
         let pool_infos = amms

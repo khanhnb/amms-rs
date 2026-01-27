@@ -6,7 +6,11 @@ use alloy::{
 use alloy_provider::ProviderBuilder;
 use amms::{
     amms::{cleo_v2::CleoV2Factory, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory},
-    state_space::StateSpaceBuilder,
+    state_space::{
+        StateSpaceBuilder, filters::{
+            AMMFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter}
+        }
+    },
 };
 use std::sync::Arc;
 
@@ -23,13 +27,13 @@ async fn main() -> eyre::Result<()> {
     let sync_provider = Arc::new(ProviderBuilder::new().connect_client(client));
 
     let factories = vec![
-        // Moe v2
-        UniswapV2Factory::new(
-            address!("0x5bef015ca9424a7c07b68490616a4c1f094bedec"),
-            300,
-            29969727,
-        )
-        .into(),
+        // // Moe v2
+        // UniswapV2Factory::new(
+        //     address!("0x5bef015ca9424a7c07b68490616a4c1f094bedec"),
+        //     300,
+        //     29969727,
+        // )
+        // .into(),
         // cleo v2
         CleoV2Factory::new(
             address!("0xAAA16c016BF556fcD620328f0759252E29b1AB57"),
@@ -37,26 +41,36 @@ async fn main() -> eyre::Result<()> {
             34705175,
         )
         .into(),
-        // Agni - v3
-        UniswapV3Factory::new(
-            address!("0x25780dc8Fc3cfBD75F33bFDAB65e969b603b2035"),
-            110692,
-            // 60_000_000,
-            10_000,
-        )
-        .into(),
-        // cleo - v3
-        UniswapV3Factory::new(
-            address!("0xAAA32926fcE6bE95ea2c51cB4Fcb60836D320C42"),
-            34705175,
-            10_000,
-        )
-        .into(),
+        // // Agni - v3
+        // UniswapV3Factory::new(
+        //     address!("0x25780dc8Fc3cfBD75F33bFDAB65e969b603b2035"),
+        //     110692,
+        //     // 60_000_000,
+        //     10_000,
+        // )
+        // .into(),
+        // // cleo - v3
+        // UniswapV3Factory::new(
+        //     address!("0xAAA32926fcE6bE95ea2c51cB4Fcb60836D320C42"),
+        //     34705175,
+        //     10_000,
+        // )
+        // .into(),
+    ];
+
+    let filters: Vec<Box<dyn AMMFilter>> = vec![
+        // Box::new(PoolWhitelistFilter::new(vec![address!(
+        //     "88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"
+        // )])),
+        // Box::new(TokenWhitelistFilter::new(vec![address!(
+        //     "A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        // )])),
     ];
 
     let checkpoint_folder = "mantle";
 
     let _state_space_manager = StateSpaceBuilder::new(sync_provider.clone())
+        .with_filters(filters)
         .with_factories(factories)
         .sync_from_checkpoint(checkpoint_folder)
         .await?;

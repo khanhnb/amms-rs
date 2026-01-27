@@ -24,8 +24,6 @@ use crate::init_progress;
 use crate::sync::checkpoint;
 use crate::sync::checkpoint::discovery_amms_from_checkpoint;
 use error::StateSpaceError;
-use filters::AMMFilter;
-use filters::PoolFilter;
 use futures::stream::FuturesUnordered;
 use futures::Stream;
 use futures::StreamExt;
@@ -39,6 +37,7 @@ use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 use tokio::sync::RwLock;
 use tracing::debug;
 use tracing::info;
+use crate::state_space::filters::AMMFilter;
 
 pub const CACHE_SIZE: usize = 30;
 
@@ -90,6 +89,7 @@ impl<N, P> StateSpaceManager<N, P> {
     }
 }
 
+
 // TODO: Drop impl, create a checkpoint
 #[derive(Debug, Default)]
 pub struct StateSpaceBuilder<N, P> {
@@ -97,7 +97,7 @@ pub struct StateSpaceBuilder<N, P> {
     pub latest_block: u64,
     pub factories: Vec<Factory>,
     pub amms: Vec<AMM>,
-    pub filters: Vec<PoolFilter>,
+    pub filters: Vec<Box<dyn AMMFilter>>,
     phantom: PhantomData<N>,
     // TODO: add support for caching
 }
@@ -134,7 +134,7 @@ where
         StateSpaceBuilder { amms, ..self }
     }
 
-    pub fn with_filters(self, filters: Vec<PoolFilter>) -> StateSpaceBuilder<N, P> {
+    pub fn with_filters(self, filters: Vec<Box<dyn AMMFilter>>) -> StateSpaceBuilder<N, P> {
         StateSpaceBuilder { filters, ..self }
     }
 

@@ -5,7 +5,7 @@ use alloy::{
 };
 use alloy_provider::ProviderBuilder;
 use amms::{
-    amms::{cleo_v2::CleoV2Factory, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory},
+    amms::{amm::AMMType, cleo_v2::CleoV2Factory, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory},
     state_space::{
         StateSpaceBuilder, filters::{
             AMMFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter}
@@ -39,6 +39,7 @@ async fn main() -> eyre::Result<()> {
             address!("0xAAA16c016BF556fcD620328f0759252E29b1AB57"),
             300,
             34705175,
+            AMMType::CleoV2,
         )
         .into(),
         // // Agni - v3

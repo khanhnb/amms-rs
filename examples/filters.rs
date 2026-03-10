@@ -5,7 +5,7 @@ use alloy::{
     transports::layers::{RetryBackoffLayer, ThrottleLayer},
 };
 use amms::{
-    amms::uniswap_v2::UniswapV2Factory,
+    amms::{amm::AMMType, uniswap_v2::UniswapV2Factory},
     state_space::{
         StateSpaceBuilder, filters::{
             AMMFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter}
@@ -32,6 +32,7 @@ async fn main() -> eyre::Result<()> {
             address!("5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"),
             300,
             10000835,
+            AMMType::UniswapV2,
         )
         .into(),
     ];

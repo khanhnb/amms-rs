@@ -14,6 +14,20 @@ use eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub enum AMMType {
+    UniswapV2,
+    UniswapV3,
+    Balancer,
+    CleoV2,
+    CleoV3,
+    MoeV2,
+    AgniV3,
+    ERC4626Vault,
+    #[default]
+    NotSupported,
+}
+
 #[allow(async_fn_in_trait)]
 pub trait AutomatedMarketMaker {
     /// Address of the AMM
@@ -31,6 +45,8 @@ pub trait AutomatedMarketMaker {
     fn token0(&self) -> Token;
 
     fn token1(&self) -> Token;
+
+    fn amm_type(&self) -> AMMType;
 
     /// Calculates the price of `base_token` in terms of `quote_token`
     fn calculate_price(&self, base_token: Address, quote_token: Address) -> Result<f64, AMMError>;
@@ -117,6 +133,12 @@ macro_rules! amm {
                 }
             }
 
+            fn amm_type(&self) -> AMMType {
+                match self {
+                    $(AMM::$pool_type(pool) => pool.amm_type(),)+
+                }
+            }
+
             fn calculate_price(&self, base_token: Address, quote_token: Address) -> Result<f64, AMMError> {
                 match self {
                     $(AMM::$pool_type(pool) => pool.calculate_price(base_token, quote_token),)+
@@ -180,3 +202,4 @@ amm!(
     BalancerPool,
     CleoV2Pool
 );
+

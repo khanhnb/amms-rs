@@ -8,9 +8,7 @@ use alloy::{
 };
 use amms::{
     amms::{
-        erc_4626::ERC4626Vault,
-        uniswap_v2::{UniswapV2Factory, UniswapV2Pool},
-        uniswap_v3::{UniswapV3Factory, UniswapV3Pool},
+        amm::AMMType, erc_4626::ERC4626Vault, uniswap_v2::{UniswapV2Factory, UniswapV2Pool}, uniswap_v3::{UniswapV3Factory, UniswapV3Pool}
     },
     state_space::StateSpaceBuilder,
 };
@@ -41,6 +39,7 @@ async fn main() -> eyre::Result<()> {
             address!("5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"),
             300,
             10000835,
+            AMMType::UniswapV2
         )
         .into(),
         // UniswapV3
@@ -48,6 +47,7 @@ async fn main() -> eyre::Result<()> {
             address!("1F98431c8aD98523631AE4a59f267346ea31F984"),
             12369621,
             50_000,
+            AMMType::UniswapV3
         )
         .into(),
     ];

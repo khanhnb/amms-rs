@@ -6,7 +6,7 @@ use alloy::{
 };
 use alloy_provider::WsConnect;
 use amms::{
-    amms::{uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory},
+    amms::{amm::AMMType, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory},
     state_space::StateSpaceBuilder,
 };
 use futures::StreamExt;
@@ -30,6 +30,7 @@ async fn main() -> eyre::Result<()> {
             address!("0x5bef015ca9424a7c07b68490616a4c1f094bedec"),
             300,
             29969727,
+            AMMType::UniswapV2,
         )
         .into(),
         // Agni - v3
@@ -38,6 +39,7 @@ async fn main() -> eyre::Result<()> {
             110692,
             // 60_000_000,
             10_000,
+            AMMType::UniswapV3,
         )
         .into(),
         // cleo v2
@@ -45,6 +47,7 @@ async fn main() -> eyre::Result<()> {
             address!("0xAAA16c016BF556fcD620328f0759252E29b1AB57"),
             300,
             34705175,
+            AMMType::CleoV2,
         )
         .into(),
         // cleo - v3
@@ -52,6 +55,7 @@ async fn main() -> eyre::Result<()> {
             address!("0xAAA32926fcE6bE95ea2c51cB4Fcb60836D320C42"),
             34705175,
             10_000,
+            AMMType::CleoV3,
         )
         .into(),
     ];

@@ -6,8 +6,7 @@ use super::{
 };
 use crate::{
     amms::{
-        consts::{MAX_CODE_SIZE, U256_1},
-        uniswap_v3::GetUniswapV3PoolTickBitmapBatchRequest::TickBitmapInfo,
+        amm::AMMType, consts::{MAX_CODE_SIZE, U256_1}, uniswap_v3::GetUniswapV3PoolTickBitmapBatchRequest::TickBitmapInfo
     },
     finish_progress, update_progress,
 };
@@ -149,6 +148,7 @@ pub struct UniswapV3Pool {
     pub tick_bitmap: HashMap<i16, U256>,
     #[serde(skip_serializing, default)]
     pub ticks: HashMap<i32, Info>,
+    pub amm_type: AMMType,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -628,6 +628,10 @@ impl AutomatedMarketMaker for UniswapV3Pool {
     fn token1(&self) -> Token {
         self.token_b.clone()
     }
+
+    fn amm_type(&self) -> AMMType {
+        self.amm_type
+    }
 }
 
 impl UniswapV3Pool {
@@ -768,14 +772,16 @@ pub struct UniswapV3Factory {
     pub address: Address,
     pub creation_block: u64,
     pub sync_step: u64,
+    pub amm_type: AMMType,
 }
 
 impl UniswapV3Factory {
-    pub fn new(address: Address, creation_block: u64, sync_step: u64) -> Self {
+    pub fn new(address: Address, creation_block: u64, sync_step: u64, amm_type: AMMType) -> Self {
         UniswapV3Factory {
             address,
             creation_block,
             sync_step,
+            amm_type
         }
     }
 

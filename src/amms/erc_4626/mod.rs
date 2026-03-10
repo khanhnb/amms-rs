@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use thiserror::Error;
 use tracing::info;
+use crate::amms::amm::AMMType;
 
 sol! {
     /// Interface of the IERC4626Valut contract
@@ -64,6 +65,7 @@ pub struct ERC4626Vault {
     pub deposit_fee: u32,
     /// Withdrawal fee in basis points
     pub withdraw_fee: u32,
+    pub amm_type: AMMType,
 }
 
 impl AutomatedMarketMaker for ERC4626Vault {
@@ -248,6 +250,10 @@ impl AutomatedMarketMaker for ERC4626Vault {
 
     fn token1(&self) -> super::Token {
         todo!()
+    }
+
+    fn amm_type(&self) -> AMMType {
+        self.amm_type
     }
 }
 

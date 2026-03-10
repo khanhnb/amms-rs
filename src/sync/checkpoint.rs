@@ -124,12 +124,12 @@ where
     P: Provider<N> + Clone + 'static,
 {
     let factory: Factory = match factory {
-        Factory::UniswapV2Factory(f) => UniswapV2Factory::new(f.address, f.fee, from_block).into(),
-        Factory::CleoV2Factory(f) => CleoV2Factory::new(f.address, f.fee, from_block).into(),
+        Factory::UniswapV2Factory(f) => UniswapV2Factory::new(f.address, f.fee, from_block, f.amm_type).into(),
+        Factory::CleoV2Factory(f) => CleoV2Factory::new(f.address, f.fee, from_block, f.amm_type).into(),
         Factory::UniswapV3Factory(f) => {
-            UniswapV3Factory::new(f.address, from_block, f.sync_step).into()
+            UniswapV3Factory::new(f.address, from_block, f.sync_step, f.amm_type).into()
         }
-        Factory::BalancerFactory(f) => BalancerFactory::new(f.address, from_block).into(),
+        Factory::BalancerFactory(f) => BalancerFactory::new(f.address, from_block, f.amm_type).into(),
     };
 
     let amms = factory.discover(to_block.into(), provider, pb).await?;

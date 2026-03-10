@@ -1,5 +1,5 @@
 use alloy::primitives::{address, U256};
-use amms::amms::{amm::AutomatedMarketMaker, erc_4626::ERC4626Vault};
+use amms::amms::{amm::{AMMType, AutomatedMarketMaker}, erc_4626::ERC4626Vault};
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::Rng;
 
@@ -16,6 +16,7 @@ fn simulate_swap(c: &mut Criterion) {
         asset_reserve: U256::from(20_000_000_u128),
         deposit_fee: 300,
         withdraw_fee: 300,
+        amm_type: AMMType::ERC4626Vault
     };
 
     let mut rng = rand::thread_rng();

@@ -12,7 +12,7 @@ use super::{
     Token,
 };
 
-use crate::{amms::uniswap_v2::UniswapV2Error, finish_progress, update_progress};
+use crate::{amms::{amm::AMMType, uniswap_v2::UniswapV2Error}, finish_progress, update_progress};
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -88,6 +88,7 @@ pub struct CleoV2Pool {
     pub reserve_1: u128,
     pub fee: usize,
     pub stable: bool,
+    pub amm_type: AMMType,
 }
 
 impl AutomatedMarketMaker for CleoV2Pool {
@@ -215,6 +216,10 @@ impl AutomatedMarketMaker for CleoV2Pool {
 
     fn token1(&self) -> Token {
         self.token_b.clone()
+    }
+
+    fn amm_type(&self) -> super::amm::AMMType {
+        self.amm_type
     }
 }
 
@@ -384,14 +389,16 @@ pub struct CleoV2Factory {
     pub address: Address,
     pub fee: usize,
     pub creation_block: u64,
+    pub amm_type: AMMType,
 }
 
 impl CleoV2Factory {
-    pub fn new(address: Address, fee: usize, creation_block: u64) -> Self {
+    pub fn new(address: Address, fee: usize, creation_block: u64, amm_type: AMMType) -> Self {
         Self {
             address,
             creation_block,
             fee,
+            amm_type
         }
     }
 
@@ -571,6 +578,7 @@ impl AutomatedMarketMakerFactory for CleoV2Factory {
             reserve_1: 0,
             fee: self.fee,
             stable: false,
+            amm_type: self.amm_type,
         }))
     }
 
@@ -612,6 +620,7 @@ impl DiscoverySync for CleoV2Factory {
                         reserve_1: 0,
                         fee: self.fee,
                         stable: false,
+                        amm_type: self.amm_type,
                     })
                 })
                 .collect())
@@ -643,7 +652,7 @@ impl DiscoverySync for CleoV2Factory {
 #[cfg(test)]
 mod tests {
     use crate::amms::{
-        amm::AutomatedMarketMaker, consts::U256_100000, uniswap_v2::UniswapV2Pool, Token,
+        Token, amm::{AMMType, AutomatedMarketMaker}, consts::U256_100000, uniswap_v2::UniswapV2Pool
     };
     use alloy::primitives::{address, Address, U256};
 
@@ -682,6 +691,7 @@ mod tests {
             reserve_0: 23595096345912178729927,
             reserve_1: 154664232014390554564,
             fee: 300,
+            amm_type: AMMType::UniswapV2,
         };
 
         assert!(pool.calculate_price(token_a, Address::default()).unwrap() != 0.0);
@@ -703,6 +713,7 @@ mod tests {
             reserve_0: 47092140895915,
             reserve_1: 28396598565590008529300,
             fee: 300,
+            amm_type: AMMType::UniswapV2,
         };
 
         let price_a_64_x = pool
@@ -733,6 +744,7 @@ mod tests {
             reserve_0: 47092140895915,
             reserve_1: 28396598565590008529300,
             fee: 300,
+            amm_type: AMMType::UniswapV2,
         };
 
         let price_a_64_x = pool.calculate_price_64_x_64(pool.token_a.address).unwrap();

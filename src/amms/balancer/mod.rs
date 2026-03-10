@@ -28,6 +28,7 @@ use super::{
     Token,
 };
 use indicatif::ProgressBar;
+use crate::amms::amm::AMMType;
 
 sol! {
     #[derive(Debug, PartialEq, Eq)]
@@ -110,6 +111,7 @@ pub struct BalancerPool {
     state: HashMap<Address, TokenPoolState>,
     /// The Swap Fee on the Pool.
     fee: u32,
+    amm_type: AMMType,
 }
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -358,6 +360,10 @@ impl AutomatedMarketMaker for BalancerPool {
     fn token1(&self) -> Token {
         todo!()
     }
+
+    fn amm_type(&self) -> AMMType {
+        self.amm_type
+    }
 }
 
 impl BalancerPool {
@@ -374,6 +380,7 @@ impl BalancerPool {
 pub struct BalancerFactory {
     pub address: Address,
     pub creation_block: u64,
+    pub amm_type: AMMType,
 }
 
 #[async_trait]
@@ -445,10 +452,11 @@ impl DiscoverySync for BalancerFactory {
 }
 
 impl BalancerFactory {
-    pub fn new(address: Address, creation_block: u64) -> BalancerFactory {
+    pub fn new(address: Address, creation_block: u64, amm_type: AMMType) -> BalancerFactory {
         BalancerFactory {
             address,
             creation_block,
+            amm_type
         }
     }
 

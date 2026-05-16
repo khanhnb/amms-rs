@@ -1,11 +1,5 @@
 use crate::amms::{
-    amm::{AutomatedMarketMaker, AMM},
-    balancer::BalancerFactory,
-    cleo_v2::CleoV2Factory,
-    error::{AMMError, CheckpointError},
-    factory::Factory,
-    uniswap_v2::UniswapV2Factory,
-    uniswap_v3::UniswapV3Factory,
+    amm::{AMM, AutomatedMarketMaker}, balancer::BalancerFactory, cleo_v2::CleoV2Factory, error::{AMMError, CheckpointError}, factory::Factory, moe_v2_2::MoeV22Factory, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory
 };
 use alloy::{
     primitives::Address,
@@ -124,12 +118,21 @@ where
     P: Provider<N> + Clone + 'static,
 {
     let factory: Factory = match factory {
-        Factory::UniswapV2Factory(f) => UniswapV2Factory::new(f.address, f.fee, from_block, f.amm_type).into(),
-        Factory::CleoV2Factory(f) => CleoV2Factory::new(f.address, f.fee, from_block, f.amm_type).into(),
+        Factory::UniswapV2Factory(f) => {
+            UniswapV2Factory::new(f.address, f.fee, from_block, f.amm_type).into()
+        }
+        Factory::CleoV2Factory(f) => {
+            CleoV2Factory::new(f.address, f.fee, from_block, f.amm_type).into()
+        }
         Factory::UniswapV3Factory(f) => {
             UniswapV3Factory::new(f.address, from_block, f.sync_step, f.amm_type).into()
         }
-        Factory::BalancerFactory(f) => BalancerFactory::new(f.address, from_block, f.amm_type).into(),
+        Factory::BalancerFactory(f) => {
+            BalancerFactory::new(f.address, from_block, f.amm_type).into()
+        }
+        Factory::MoeV22Factory(f) => {
+            MoeV22Factory::new(f.address, f.fee, from_block, f.amm_type).into()
+        }
     };
 
     let amms = factory.discover(to_block.into(), provider, pb).await?;

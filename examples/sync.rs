@@ -1,26 +1,38 @@
 use alloy::{
-    primitives::address,
+    primitives::{address, aliases::U24, U256},
     rpc::client::ClientBuilder,
     transports::layers::{RetryBackoffLayer, ThrottleLayer},
 };
 use alloy_provider::ProviderBuilder;
 use amms::{
-    amms::{amm::AMMType, cleo_v2::CleoV2Factory, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory},
+    amms::{
+        amm::AMMType,
+        cleo_v2::CleoV2Factory,
+        moe_v2_2::{tree_uint24::TreeUint24, MoeV22Factory},
+        uniswap_v2::UniswapV2Factory,
+        uniswap_v3::UniswapV3Factory,
+    },
     state_space::{
-        StateSpaceBuilder, filters::{
-            AMMFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter}
-        }
+        filters::{
+            whitelist::{PoolWhitelistFilter, TokenWhitelistFilter},
+            AMMFilter,
+        },
+        StateSpaceBuilder,
     },
 };
-use std::sync::Arc;
+use std::{ops::Shl, sync::Arc};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     tracing_subscriber::fmt::init();
 
+    // let mut tree = TreeUint24::default();
+    // tree.add(8374774);
+    // assert!(tree.contains(8374774));
+
     let rpc_endpoint = std::env::var("ETHEREUM_PROVIDER")?;
     let client = ClientBuilder::default()
-        .layer(ThrottleLayer::new(20))
+        .layer(ThrottleLayer::new(15))
         .layer(RetryBackoffLayer::new(5, 200, 330))
         .http(rpc_endpoint.parse()?);
 
@@ -35,13 +47,13 @@ async fn main() -> eyre::Result<()> {
         // )
         // .into(),
         // cleo v2
-        CleoV2Factory::new(
-            address!("0xAAA16c016BF556fcD620328f0759252E29b1AB57"),
-            300,
-            34705175,
-            AMMType::CleoV2,
-        )
-        .into(),
+        // CleoV2Factory::new(
+        //     address!("0xAAA16c016BF556fcD620328f0759252E29b1AB57"),
+        //     300,
+        //     34705175,
+        //     AMMType::CleoV2,
+        // )
+        // .into(),
         // // Agni - v3
         // UniswapV3Factory::new(
         //     address!("0x25780dc8Fc3cfBD75F33bFDAB65e969b603b2035"),
@@ -57,6 +69,13 @@ async fn main() -> eyre::Result<()> {
         //     10_000,
         // )
         // .into(),
+        MoeV22Factory::new(
+            address!("0xa6630671775c4EA2743840F9A5016dCf2A104054"),
+            300,
+            61742960,
+            AMMType::MoeV22,
+        )
+        .into(),
     ];
 
     let filters: Vec<Box<dyn AMMFilter>> = vec![
@@ -73,8 +92,13 @@ async fn main() -> eyre::Result<()> {
     let _state_space_manager = StateSpaceBuilder::new(sync_provider.clone())
         .with_filters(filters)
         .with_factories(factories)
-        .sync_from_checkpoint(checkpoint_folder)
+        .sync_from_checkpoint(checkpoint_folder, true)
         .await?;
+
+    println!(
+        "Synced {} pools",
+        _state_space_manager.state.read().await.state.len()
+    );
 
     Ok(())
 }

@@ -66,7 +66,7 @@ where
 
             // apply sync filters
 
-            checkpoint::construct_checkpoint(&factory, &amms, current_block, &amm_checkpoint_path)?;
+            // checkpoint::construct_checkpoint(&factory, &amms, current_block, &amm_checkpoint_path)?;
             Ok::<Vec<AMM>, AMMError>(amms)
         }));
     }

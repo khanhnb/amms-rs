@@ -58,9 +58,15 @@ contract GetUniswapV3PoolDataBatchRequest {
 
                     bool initialized = (tickBitmap & bit) != 0;
                     if (initialized) {
-                        int24 tickIndex = int24(int256(wordRangeIdx * 256 + k * uint256(int256(info.tickSpacing))));
+                        int24 tickIndex = int24(
+                            int256(
+                                wordRangeIdx * 256 + k
+                                    * uint256(int256(info.tickSpacing))
+                            )
+                        );
 
-                        IUniswapV3PoolState.TickInfo memory tick = pool.ticks(tickIndex);
+                        IUniswapV3PoolState.TickInfo memory tick =
+                            pool.ticks(tickIndex);
 
                         tickIdxs[tickArrayIndex] = tickIndex;
                         tickInfo[tickArrayIndex] = TickInfo({

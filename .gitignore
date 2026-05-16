@@ -28,3 +28,6 @@ mantle
 Makefile
 contracts/Makefile
 
+tmp/
+soljson-latest.js
+cache/

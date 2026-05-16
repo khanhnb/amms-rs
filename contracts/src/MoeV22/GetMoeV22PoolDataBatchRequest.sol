@@ -1,24 +1,19 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface ICleoV2Pair {
-    function token0() external view returns (address);
-
-    function token1() external view returns (address);
-
+interface ILBPair {
+    function getTokenX() external view returns (address tokenX);
+    function getTokenY() external view returns (address tokenY);
+    function getBinStep() external view returns (uint16 binStep);
     function getReserves()
         external
         view
-        returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
-
-    function stable() external view returns (bool stable);
-}
-
-interface ICleoV2Factory {
-    function getPairFee(address _pair, bool _stable)
+        returns (uint128 reserveX, uint128 reserveY);
+    function getActiveId() external view returns (uint24 activeId);
+    function getBin(uint24 id)
         external
         view
-        returns (uint256);
+        returns (uint128 binReserveX, uint128 binReserveY);
 }
 
 interface IERC20 {
@@ -29,19 +24,17 @@ interface IERC20 {
  * @dev This contract is not meant to be deployed. Instead, use a static call with the
  *       deployment bytecode as payload.
  */
-contract GetCleoV2PoolDataBatchRequest {
+contract GetMoeV22PoolDataBatchRequest {
     struct PoolData {
         address tokenA;
         address tokenB;
-        uint112 reserve0;
-        uint112 reserve1;
+        uint128 reserve0;
+        uint128 reserve1;
         uint8 tokenADecimals;
         uint8 tokenBDecimals;
-        bool stable;
-        uint256 fee;
     }
 
-    constructor(address[] memory pools, address factory) {
+    constructor(address[] memory pools) {
         PoolData[] memory allPoolData = new PoolData[](pools.length);
 
         for (uint256 i = 0; i < pools.length; ++i) {
@@ -52,8 +45,8 @@ contract GetCleoV2PoolDataBatchRequest {
             PoolData memory poolData;
 
             // Get tokens A and B
-            poolData.tokenA = ICleoV2Pair(poolAddress).token0();
-            poolData.tokenB = ICleoV2Pair(poolAddress).token1();
+            poolData.tokenA = ILBPair(poolAddress).getTokenX();
+            poolData.tokenB = ILBPair(poolAddress).getTokenY();
 
             // Check that tokenA and tokenB do not have codesize of 0
             if (codeSizeIsZero(poolData.tokenA)) continue;
@@ -108,13 +101,8 @@ contract GetCleoV2PoolDataBatchRequest {
             }
 
             // Get reserves
-            (poolData.reserve0, poolData.reserve1,) =
-                ICleoV2Pair(poolAddress).getReserves();
-
-            // Get fee and stable for Cleo pairs
-            poolData.stable = ICleoV2Pair(poolAddress).stable();
-            poolData.fee =
-                ICleoV2Factory(factory).getPairFee(pools[i], poolData.stable);
+            (poolData.reserve0, poolData.reserve1) =
+                ILBPair(poolAddress).getReserves();
 
             allPoolData[i] = poolData;
         }

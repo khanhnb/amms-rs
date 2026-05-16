@@ -21,6 +21,7 @@ use cache::StateChange;
 use cache::StateChangeCache;
 
 use crate::init_progress;
+use crate::state_space::filters::AMMFilter;
 use crate::sync::checkpoint;
 use crate::sync::checkpoint::discovery_amms_from_checkpoint;
 use error::StateSpaceError;
@@ -37,7 +38,6 @@ use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 use tokio::sync::RwLock;
 use tracing::debug;
 use tracing::info;
-use crate::state_space::filters::AMMFilter;
 
 pub const CACHE_SIZE: usize = 30;
 
@@ -88,7 +88,6 @@ impl<N, P> StateSpaceManager<N, P> {
         }))
     }
 }
-
 
 // TODO: Drop impl, create a checkpoint
 #[derive(Debug, Default)]
@@ -141,6 +140,7 @@ where
     pub async fn sync_from_checkpoint(
         self,
         checkpoint_folder: &str,
+        sync_data: bool,
     ) -> Result<StateSpaceManager<N, P>, AMMError> {
         tracing::info!(?self.factories, "Syncing AMMs");
         let mut futures = FuturesUnordered::new();
@@ -221,6 +221,10 @@ where
                     }
                 }
 
+                if !sync_data {
+                    return Ok::<Vec<AMM>, AMMError>(discovered_amms);
+                }
+
                 //sync data
                 discovered_amms = factory
                     .sync(
@@ -248,13 +252,6 @@ where
                     }
                 }
 
-                // Not necessary?
-                checkpoint::construct_checkpoint(
-                    &factory,
-                    &discovered_amms,
-                    current_block,
-                    &amm_checkpoint_path,
-                )?;
                 Ok::<Vec<AMM>, AMMError>(discovered_amms)
             }));
         }

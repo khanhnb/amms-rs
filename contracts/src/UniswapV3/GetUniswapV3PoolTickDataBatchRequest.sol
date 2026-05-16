@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../utils/BytesLib.sol";
+import "./interfaces/IUniswapV3.sol";
 
 /**
  * @dev This contract is not meant to be deployed. Instead, use a static call with the
@@ -16,43 +17,60 @@ contract GetUniswapV3PoolTickDataBatchRequest {
         int24[] ticks;
     }
 
-    struct Info {
-        bool initialized;
-        uint128 liquidityGross;
-        int128 liquidityNet;
-    }
+    // struct Info {
+    //     uint128 liquidityGross;
+    //     int128 liquidityNet;
+    //     uint256 feeGrowthOutside0X128;
+    //     uint256 feeGrowthOutside1X128;
+    //     int56 tickCumulativeOutside;
+    //     uint160 secondsPerLiquidityOutsideX128;
+    //     uint32 secondsOutside;
+    //     bool initialized;
+    // }
 
     constructor(TickDataInfo[] memory allPoolInfo) {
-        Info[][] memory tickInfoReturn = new Info[][](allPoolInfo.length);
+        IUniswapV3Pool.Info[][] memory tickInfoReturn =
+            new IUniswapV3Pool.Info[][](allPoolInfo.length);
 
         for (uint256 i = 0; i < allPoolInfo.length; ++i) {
-            Info[] memory tickInfo = new Info[](allPoolInfo[i].ticks.length);
+            IUniswapV3Pool.Info[] memory tickInfo =
+                new IUniswapV3Pool.Info[](allPoolInfo[i].ticks.length);
             for (uint256 j = 0; j < allPoolInfo[i].ticks.length; ++j) {
-                // IUniswapV3PoolState.Info memory tick = IUniswapV3PoolState(
-                //     allPoolInfo[i].pool
-                // ).ticks(allPoolInfo[i].ticks[j]);
+                IUniswapV3Pool.Info memory tick = IUniswapV3Pool(
+                        allPoolInfo[i].pool
+                    ).ticks(allPoolInfo[i].ticks[j]);
 
+                // split this into another type of V3
                 // work around - some AMMs have different return data struct;
                 // Ex: https://mantlescan.xyz/address/0xF8090C06C9086ca9aBa39a89D6792291d0a06fd2
-                (bool success, bytes memory returnData) = allPoolInfo[i]
-                    .pool
-                    .call(
-                        abi.encodeWithSignature(
-                            "ticks(int24)",
-                            allPoolInfo[i].ticks[j]
-                        )
-                    );
-                if (!success) revert("ticks(int24) failed");
+                // (bool success, bytes memory returnData) = allPoolInfo[i]
+                //     .pool
+                //     .call(
+                //         abi.encodeWithSignature(
+                //             "ticks(int24)",
+                //             allPoolInfo[i].ticks[j]
+                //         )
+                //     );
+                // if (!success) revert("ticks(int24) failed");
 
-                (uint128 liquidityGross, int128 liquidityNet) = abi.decode(
-                    returnData,
-                    (uint128, int128)
-                );
-                tickInfo[j] = Info({
-                    liquidityGross: liquidityGross,
-                    liquidityNet: liquidityNet,
-                    initialized: returnData[returnData.length - 1] != 0x00
-                });
+                // (uint128 liquidityGross, int128 liquidityNet) = abi.decode(
+                //     returnData,
+                //     (uint128, int128)
+                // );
+
+                tickInfo[j] = tick;
+
+                // tickInfo[j] = Info({
+                //     liquidityGross: tick.liquidityGross,
+                //     liquidityNet: tick.liquidityNet,
+                //     feeGrowthOutside0X128: tick.feeGrowthOutside0X128,
+                //     feeGrowthOutside1X128: tick.feeGrowthOutside1X128,
+                //     tickCumulativeOutside: tick.tickCumulativeOutside,
+                //     secondsPerLiquidityOutsideX128: tick
+                //         .secondsPerLiquidityOutsideX128,
+                //     secondsOutside: tick.secondsOutside,
+                //     initialized: tick.initialized
+                // });
             }
             tickInfoReturn[i] = tickInfo;
         }

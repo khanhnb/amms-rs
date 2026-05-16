@@ -6,6 +6,7 @@ use alloy::{primitives::FixedBytes, transports::TransportErrorKind};
 use std::time::SystemTimeError;
 use thiserror::Error;
 use tokio::task::JoinError;
+use crate::amms::moe_v2_2::MoeV22Error;
 
 #[derive(Error, Debug)]
 pub enum AMMError {
@@ -39,6 +40,8 @@ pub enum AMMError {
     SerdeJsonError(#[from] serde_json::error::Error),
     #[error(transparent)]
     IOError(#[from] std::io::Error),
+    #[error(transparent)]
+    MoeV22Error(#[from] MoeV22Error),
 }
 
 #[derive(Error, Debug)]

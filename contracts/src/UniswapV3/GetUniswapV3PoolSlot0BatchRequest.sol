@@ -25,15 +25,12 @@ contract GetUniswapV3PoolSlot0BatchRequest {
             // (slot0Data.sqrtPrice, slot0Data.tick, , , , , ) = pool.slot0();
             // Cannot use IUniswapV3Pool.slot0() because feeProtocol on Pancake is uint32
 
-            (bool success, bytes memory returnData) = poolAddress.call(
-                abi.encodeWithSignature("slot0()")
-            );
+            (bool success, bytes memory returnData) =
+                poolAddress.call(abi.encodeWithSignature("slot0()"));
             if (!success) revert("slot0() failed");
 
-            (slot0Data.sqrtPrice, slot0Data.tick) = abi.decode(
-                returnData,
-                (uint160, int24)
-            );
+            (slot0Data.sqrtPrice, slot0Data.tick) =
+                abi.decode(returnData, (uint160, int24));
             allSlot0Data[i] = slot0Data;
         }
 

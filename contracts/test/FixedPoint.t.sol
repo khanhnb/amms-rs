@@ -8,7 +8,8 @@ contract FixedPointTest is Test {
     /// @dev The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
     uint160 internal constant MIN_SQRT_RATIO = 4295128739;
     /// @dev The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
-    uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
+    uint160 internal constant MAX_SQRT_RATIO =
+        1461446703485210103287273052203988822378723970342;
 
     function setUp() public {}
 
@@ -28,7 +29,9 @@ contract FixedPointTest is Test {
     ) public pure {
         // Bound x from min_sqrt_x_96 to max_sqrt_x_96
         if (x >= MIN_SQRT_RATIO || x <= MAX_SQRT_RATIO) {
-            FixedPointMath.fromSqrtX96(x, token0IsReserve0, token0Decimals, token1Decimals);
+            FixedPointMath.fromSqrtX96(
+                x, token0IsReserve0, token0Decimals, token1Decimals
+            );
         }
     }
 }

@@ -6,14 +6,16 @@ use super::{
 };
 use crate::{
     amms::{
-        amm::AMMType, consts::{MAX_CODE_SIZE, U256_1}, uniswap_v3::GetUniswapV3PoolTickBitmapBatchRequest::TickBitmapInfo
+        amm::AMMType,
+        consts::{MAX_CODE_SIZE, U256_1},
+        uniswap_v3::GetUniswapV3PoolTickBitmapBatchRequest::TickBitmapInfo,
     },
     finish_progress, update_progress,
 };
 use alloy::{
     eips::BlockId,
     network::Network,
-    primitives::{Address, Bytes, Signed, B256, I256, U256},
+    primitives::{aliases::I56, Address, Bytes, Signed, B256, I256, U256, U160},
     providers::Provider,
     rpc::types::{Filter, FilterSet, Log},
     sol,
@@ -156,14 +158,33 @@ pub struct Info {
     pub liquidity_gross: u128,
     pub liquidity_net: i128,
     pub initialized: bool,
+    pub fee_growth_outside0_x128: U256,
+    pub fee_growth_outside1_x128: U256,
+    pub tick_cumulative_outside: I56,
+    pub seconds_per_liquidity_outside_x128: U160,
+    pub seconds_outside: u32,
 }
 
 impl Info {
-    pub fn new(liquidity_gross: u128, liquidity_net: i128, initialized: bool) -> Self {
+    pub fn new(
+        liquidity_gross: u128,
+        liquidity_net: i128,
+        initialized: bool,
+        fee_growth_outside0_x128: U256,
+        fee_growth_outside1_x128: U256,
+        tick_cumulative_outside: I56,
+        seconds_per_liquidity_outside_x128: U160,
+        seconds_outside: u32,
+    ) -> Self {
         Info {
             liquidity_gross,
             liquidity_net,
             initialized,
+            fee_growth_outside0_x128,
+            fee_growth_outside1_x128,
+            tick_cumulative_outside,
+            seconds_per_liquidity_outside_x128,
+            seconds_outside,
         }
     }
 }
@@ -781,7 +802,7 @@ impl UniswapV3Factory {
             address,
             creation_block,
             sync_step,
-            amm_type
+            amm_type,
         }
     }
 
@@ -1225,7 +1246,7 @@ impl UniswapV3Factory {
             pb.iter().for_each(|f| {
                 update_progress!(f, pool_progress.len() as u64);
             });
-            let return_data = <Vec<Vec<(bool, u128, i128)>> as SolValue>::abi_decode(&return_data)?;
+            let return_data = <Vec<Vec<(u128, i128, U256, U256, I56, U160, u32, bool)>> as SolValue>::abi_decode(&return_data)?;
 
             for (tick_bitmaps, tick_info) in return_data.iter().zip(tick_info.iter()) {
                 let pool = pool_set.get_mut(&tick_info.pool).unwrap();
@@ -1236,9 +1257,14 @@ impl UniswapV3Factory {
 
                 for (tick, tick_idx) in tick_bitmaps.iter().zip(tick_info.ticks.iter()) {
                     let info = Info {
-                        liquidity_gross: tick.1,
-                        liquidity_net: tick.2,
-                        initialized: tick.0,
+                        liquidity_gross: tick.0,
+                        liquidity_net: tick.1,
+                        fee_growth_outside0_x128: tick.2,
+                        fee_growth_outside1_x128: tick.3,
+                        tick_cumulative_outside: tick.4,
+                        seconds_per_liquidity_outside_x128: tick.5,
+                        seconds_outside: tick.6,
+                        initialized: tick.7,
                     };
 
                     uv3_pool.ticks.insert(tick_idx.as_i32(), info);

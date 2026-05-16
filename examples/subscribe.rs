@@ -62,7 +62,7 @@ async fn main() -> eyre::Result<()> {
 
     let state_space_manager = StateSpaceBuilder::new(sync_provider.clone())
         .with_factories(factories)
-        .sync_from_checkpoint("mantle")
+        .sync_from_checkpoint("mantle", true)
         .await?;
 
     /*

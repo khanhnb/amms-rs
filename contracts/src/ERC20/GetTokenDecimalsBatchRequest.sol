@@ -10,8 +10,8 @@ contract GetTokenDecimalsBatchRequest {
 
             if (codeSizeIsZero(token)) continue;
 
-            (bool tokenDecimalsSuccess, bytes memory tokenDecimalsData) = token
-                .call{gas: 20000}(abi.encodeWithSignature("decimals()"));
+            (bool tokenDecimalsSuccess, bytes memory tokenDecimalsData) =
+                token.call{gas: 20000}(abi.encodeWithSignature("decimals()"));
 
             if (tokenDecimalsSuccess) {
                 uint256 tokenDecimals;

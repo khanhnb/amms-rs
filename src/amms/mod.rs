@@ -3,7 +3,13 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use alloy::{dyn_abi::DynSolType, network::Network, primitives::Address, providers::Provider, sol};
+use alloy::{
+    dyn_abi::DynSolType,
+    network::Network,
+    primitives::{Address, U256},
+    providers::Provider,
+    sol,
+};
 use error::{AMMError, BatchContractError};
 use futures::{stream::FuturesUnordered, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -16,6 +22,7 @@ pub mod erc_4626;
 pub mod error;
 pub mod factory;
 pub mod float;
+pub mod moe_v2_2;
 pub mod uniswap_v2;
 pub mod uniswap_v3;
 
@@ -125,3 +132,4 @@ where
     }
     Ok(token_decimals)
 }
+

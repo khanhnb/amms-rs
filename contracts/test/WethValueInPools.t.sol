@@ -13,11 +13,13 @@ contract WethValueInPoolsTest is Test {
     address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
     function setUp() public {
-        wethValueInPools = new WethValueInPools(uniswapV2Factory, uniswapV3Factory, WETH);
+        wethValueInPools =
+            new WethValueInPools(uniswapV2Factory, uniswapV3Factory, WETH);
     }
 
     function test_getWethValueInPools_validWeth() public {
-        WethValueInPools.PoolInfo[] memory testFixtureValidWeth = new WethValueInPools.PoolInfo[](3);
+        WethValueInPools.PoolInfo[] memory testFixtureValidWeth =
+            new WethValueInPools.PoolInfo[](3);
         testFixtureValidWeth[0] = WethValueInPools.PoolInfo({
             poolType: WethValueInPools.PoolType.Balancer,
             poolAddress: 0x8a649274E4d777FFC6851F13d23A86BBFA2f2Fbf
@@ -30,7 +32,8 @@ contract WethValueInPoolsTest is Test {
             poolType: WethValueInPools.PoolType.UniswapV3,
             poolAddress: 0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640
         });
-        WethValueInPools.PoolInfoReturn[] memory pools = wethValueInPools.getWethValueInPools(testFixtureValidWeth);
+        WethValueInPools.PoolInfoReturn[] memory pools =
+            wethValueInPools.getWethValueInPools(testFixtureValidWeth);
         assertEq(pools.length, 3);
         // Check weth value > 0
         assertGt(pools[0].wethValue, 0);
@@ -39,7 +42,8 @@ contract WethValueInPoolsTest is Test {
     }
 
     function test_getWethValueInPools_validNoWeth() public {
-        WethValueInPools.PoolInfo[] memory testFixtureValidNoWeth = new WethValueInPools.PoolInfo[](3);
+        WethValueInPools.PoolInfo[] memory testFixtureValidNoWeth =
+            new WethValueInPools.PoolInfo[](3);
         testFixtureValidNoWeth[0] = WethValueInPools.PoolInfo({
             poolType: WethValueInPools.PoolType.Balancer,
             poolAddress: 0xE5D1fAB0C5596ef846DCC0958d6D0b20E1Ec4498
@@ -52,7 +56,8 @@ contract WethValueInPoolsTest is Test {
             poolType: WethValueInPools.PoolType.UniswapV3,
             poolAddress: 0x6c6Bc977E13Df9b0de53b251522280BB72383700
         });
-        WethValueInPools.PoolInfoReturn[] memory pools = wethValueInPools.getWethValueInPools(testFixtureValidNoWeth);
+        WethValueInPools.PoolInfoReturn[] memory pools =
+            wethValueInPools.getWethValueInPools(testFixtureValidNoWeth);
         assertEq(pools.length, 3);
         // Check weth value > 0
         assertGt(pools[0].wethValue, 0);
@@ -61,7 +66,8 @@ contract WethValueInPoolsTest is Test {
     }
 
     function test_getWethValueInPools_invalid_no_revert() public {
-        WethValueInPools.PoolInfo[] memory testFixtureInvalid = new WethValueInPools.PoolInfo[](3);
+        WethValueInPools.PoolInfo[] memory testFixtureInvalid =
+            new WethValueInPools.PoolInfo[](3);
         testFixtureInvalid[0] = WethValueInPools.PoolInfo({
             poolType: WethValueInPools.PoolType.Balancer,
             poolAddress: 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f
@@ -74,7 +80,8 @@ contract WethValueInPoolsTest is Test {
             poolType: WethValueInPools.PoolType.UniswapV3,
             poolAddress: 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f
         });
-        WethValueInPools.PoolInfoReturn[] memory pools = wethValueInPools.getWethValueInPools(testFixtureInvalid);
+        WethValueInPools.PoolInfoReturn[] memory pools =
+            wethValueInPools.getWethValueInPools(testFixtureInvalid);
         assertEq(pools.length, 3);
         // Should all be zero
         assertEq(pools[0].wethValue, 0);

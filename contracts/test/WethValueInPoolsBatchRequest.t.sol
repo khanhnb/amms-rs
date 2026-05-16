@@ -14,7 +14,8 @@ contract WethValueInPoolsBatchRequestTest is Test {
     function setUp() public {}
 
     function test_WethValueInPoolsBatchRequest_validWeth() public {
-        WethValueInPools.PoolInfo[] memory testFixtureValidWeth = new WethValueInPools.PoolInfo[](3);
+        WethValueInPools.PoolInfo[] memory testFixtureValidWeth =
+            new WethValueInPools.PoolInfo[](3);
         testFixtureValidWeth[0] = WethValueInPools.PoolInfo({
             poolType: WethValueInPools.PoolType.Balancer,
             poolAddress: 0x8a649274E4d777FFC6851F13d23A86BBFA2f2Fbf
@@ -28,22 +29,31 @@ contract WethValueInPoolsBatchRequestTest is Test {
             poolAddress: 0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640
         });
 
-        bytes memory returnData = address(
-            new WethValueInPoolsBatchRequest(uniswapV2Factory, uniswapV3Factory, WETH, testFixtureValidWeth)
-        ).code;
-        WethValueInPools.PoolInfoReturn[] memory pools = abi.decode(returnData, (WethValueInPools.PoolInfoReturn[]));
+        bytes memory returnData =
+            address(
+            new WethValueInPoolsBatchRequest(
+                uniswapV2Factory, uniswapV3Factory, WETH, testFixtureValidWeth
+            )
+        )
+        .code;
+        WethValueInPools.PoolInfoReturn[] memory pools =
+            abi.decode(returnData, (WethValueInPools.PoolInfoReturn[]));
 
         assertEq(pools.length, 3);
         // Check weth value > 0 and valid pool address and pool type
         for (uint256 i = 0; i < pools.length; i++) {
             assertGt(pools[i].wethValue, 0);
-            assertEq(uint8(pools[i].poolType), uint8(testFixtureValidWeth[i].poolType));
+            assertEq(
+                uint8(pools[i].poolType),
+                uint8(testFixtureValidWeth[i].poolType)
+            );
             assertEq(pools[i].poolAddress, testFixtureValidWeth[i].poolAddress);
         }
     }
 
     function test_WethValueInPoolsBatchRequest_validNoWeth() public {
-        WethValueInPools.PoolInfo[] memory testFixtureValidNoWeth = new WethValueInPools.PoolInfo[](3);
+        WethValueInPools.PoolInfo[] memory testFixtureValidNoWeth =
+            new WethValueInPools.PoolInfo[](3);
         testFixtureValidNoWeth[0] = WethValueInPools.PoolInfo({
             poolType: WethValueInPools.PoolType.Balancer,
             poolAddress: 0xE5D1fAB0C5596ef846DCC0958d6D0b20E1Ec4498
@@ -57,22 +67,33 @@ contract WethValueInPoolsBatchRequestTest is Test {
             poolAddress: 0x6c6Bc977E13Df9b0de53b251522280BB72383700
         });
 
-        bytes memory returnData = address(
-            new WethValueInPoolsBatchRequest(uniswapV2Factory, uniswapV3Factory, WETH, testFixtureValidNoWeth)
-        ).code;
-        WethValueInPools.PoolInfoReturn[] memory pools = abi.decode(returnData, (WethValueInPools.PoolInfoReturn[]));
+        bytes memory returnData =
+            address(
+            new WethValueInPoolsBatchRequest(
+                uniswapV2Factory, uniswapV3Factory, WETH, testFixtureValidNoWeth
+            )
+        )
+        .code;
+        WethValueInPools.PoolInfoReturn[] memory pools =
+            abi.decode(returnData, (WethValueInPools.PoolInfoReturn[]));
 
         assertEq(pools.length, 3);
         // Check weth value > 0 and valid pool address and pool type
         for (uint256 i = 0; i < pools.length; i++) {
             assertGt(pools[i].wethValue, 0);
-            assertEq(uint8(pools[i].poolType), uint8(testFixtureValidNoWeth[i].poolType));
-            assertEq(pools[i].poolAddress, testFixtureValidNoWeth[i].poolAddress);
+            assertEq(
+                uint8(pools[i].poolType),
+                uint8(testFixtureValidNoWeth[i].poolType)
+            );
+            assertEq(
+                pools[i].poolAddress, testFixtureValidNoWeth[i].poolAddress
+            );
         }
     }
 
     function test_WethValueInPoolsBatchRequest_invalid_no_revert() public {
-        WethValueInPools.PoolInfo[] memory testFixtureInvalid = new WethValueInPools.PoolInfo[](3);
+        WethValueInPools.PoolInfo[] memory testFixtureInvalid =
+            new WethValueInPools.PoolInfo[](3);
         testFixtureInvalid[0] = WethValueInPools.PoolInfo({
             poolType: WethValueInPools.PoolType.Balancer,
             poolAddress: 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f
@@ -87,14 +108,22 @@ contract WethValueInPoolsBatchRequestTest is Test {
         });
 
         bytes memory returnData =
-            address(new WethValueInPoolsBatchRequest(uniswapV2Factory, uniswapV3Factory, WETH, testFixtureInvalid)).code;
-        WethValueInPools.PoolInfoReturn[] memory pools = abi.decode(returnData, (WethValueInPools.PoolInfoReturn[]));
+            address(
+            new WethValueInPoolsBatchRequest(
+                uniswapV2Factory, uniswapV3Factory, WETH, testFixtureInvalid
+            )
+        )
+        .code;
+        WethValueInPools.PoolInfoReturn[] memory pools =
+            abi.decode(returnData, (WethValueInPools.PoolInfoReturn[]));
 
         assertEq(pools.length, 3);
         // All weth values should be zero
         for (uint256 i = 0; i < pools.length; i++) {
             assertEq(pools[i].wethValue, 0);
-            assertEq(uint8(pools[i].poolType), uint8(testFixtureInvalid[i].poolType));
+            assertEq(
+                uint8(pools[i].poolType), uint8(testFixtureInvalid[i].poolType)
+            );
             assertEq(pools[i].poolAddress, testFixtureInvalid[i].poolAddress);
         }
     }

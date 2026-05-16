@@ -2,7 +2,7 @@ use super::{
     balancer::BalancerPool, erc_4626::ERC4626Vault, error::AMMError, uniswap_v2::UniswapV2Pool,
     uniswap_v3::UniswapV3Pool,
 };
-use crate::amms::{cleo_v2::CleoV2Pool, Token};
+use crate::amms::{Token, cleo_v2::CleoV2Pool, moe_v2_2::MoeV22Pool};
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -15,17 +15,19 @@ use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[repr(u8)]
 pub enum AMMType {
-    UniswapV2,
-    UniswapV3,
-    Balancer,
-    CleoV2,
-    CleoV3,
-    MoeV2,
-    AgniV3,
-    ERC4626Vault,
+    UniswapV2 = 0,
+    UniswapV3 = 1,
+    CleoV2 = 2,
+    CleoV3 = 3,
+    MoeV2 = 4,
+    AgniV3 = 5,
+    Balancer = 6,
+    ERC4626Vault = 7,
+    MoeV22 = 8,
     #[default]
-    NotSupported,
+    NotSupported = 100,
 }
 
 #[allow(async_fn_in_trait)]
@@ -200,6 +202,6 @@ amm!(
     UniswapV3Pool,
     ERC4626Vault,
     BalancerPool,
-    CleoV2Pool
+    CleoV2Pool,
+    MoeV22Pool
 );
-

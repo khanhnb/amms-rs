@@ -28,7 +28,11 @@ contract WethValueInPools {
 
     uint8 private constant WETH_DECIMALS = 18;
 
-    constructor(address _uniswapV2Factory, address _uniswapV3Factory, address _weth) {
+    constructor(
+        address _uniswapV2Factory,
+        address _uniswapV3Factory,
+        address _weth
+    ) {
         UNISWAP_V2_FACTORY = _uniswapV2Factory;
         UNISWAP_V3_FACTORY = _uniswapV3Factory;
         WETH = _weth;
@@ -56,19 +60,26 @@ contract WethValueInPools {
 
     /// @notice Returns an array of `PoolInfoReturn` for the consumer to determine wether to filter or not to save gas.
     /// @dev We require a 1 ETH minimum liquidity in the quoting pool for it to be considered.
-    function getWethValueInPools(PoolInfo[] memory pools) public returns (PoolInfoReturn[] memory) {
-        PoolInfoReturn[] memory poolInfoReturns = new PoolInfoReturn[](pools.length);
+    function getWethValueInPools(PoolInfo[] memory pools)
+        public
+        returns (PoolInfoReturn[] memory)
+    {
+        PoolInfoReturn[] memory poolInfoReturns =
+            new PoolInfoReturn[](pools.length);
         for (uint256 i = 0; i < pools.length; i++) {
             PoolInfo memory info = pools[i];
             if (info.poolType == PoolType.Balancer) {
                 uint256 wethValue = handleBalancerPool(info.poolAddress);
-                poolInfoReturns[i] = PoolInfoReturn(info.poolType, info.poolAddress, wethValue);
+                poolInfoReturns[i] =
+                    PoolInfoReturn(info.poolType, info.poolAddress, wethValue);
             } else if (info.poolType == PoolType.UniswapV2) {
                 uint256 wethValue = handleUniswapV2Pool(info.poolAddress);
-                poolInfoReturns[i] = PoolInfoReturn(info.poolType, info.poolAddress, wethValue);
+                poolInfoReturns[i] =
+                    PoolInfoReturn(info.poolType, info.poolAddress, wethValue);
             } else if (info.poolType == PoolType.UniswapV3) {
                 uint256 wethValue = handleUniswapV3Pool(info.poolAddress);
-                poolInfoReturns[i] = PoolInfoReturn(info.poolType, info.poolAddress, wethValue);
+                poolInfoReturns[i] =
+                    PoolInfoReturn(info.poolType, info.poolAddress, wethValue);
             }
         }
         return poolInfoReturns;
@@ -86,7 +97,9 @@ contract WethValueInPools {
         // First check if we have WETH in the pool. If so, return Weth Value * # of tokens in the pool.
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i] == WETH) {
-                try IBPool(pool).getBalance(tokens[i]) returns (uint256 _balance) {
+                try IBPool(pool).getBalance(tokens[i]) returns (
+                    uint256 _balance
+                ) {
                     // Obviously assuming an even distribution of value. Which is a "good enough" approximation.
                     // For a value filter.
                     return _balance * tokens.length;
@@ -121,7 +134,9 @@ contract WethValueInPools {
         } catch {
             return 0;
         }
-        try IUniswapV2Pair(pool).getReserves() returns (uint112 reserve0, uint112 reserve1, uint32) {
+        try IUniswapV2Pair(pool).getReserves() returns (
+            uint112 reserve0, uint112 reserve1, uint32
+        ) {
             if (token0 == WETH) {
                 return reserve0 * 2;
             } else if (token1 == WETH) {
@@ -150,13 +165,17 @@ contract WethValueInPools {
         }
 
         if (token0 == WETH) {
-            try IERC20(token0).balanceOf(address(pool)) returns (uint256 balance) {
+            try IERC20(token0).balanceOf(address(pool)) returns (
+                uint256 balance
+            ) {
                 return balance * 2;
             } catch {
                 return 0;
             }
         } else if (token1 == WETH) {
-            try IERC20(token1).balanceOf(address(pool)) returns (uint256 balance) {
+            try IERC20(token1).balanceOf(address(pool)) returns (
+                uint256 balance
+            ) {
                 return balance * 2;
             } catch {
                 return 0;
@@ -173,7 +192,10 @@ contract WethValueInPools {
     }
 
     /// @dev Returns the value of `amount` of `token` in terms of WETH.
-    function quoteTokenToWethValue(address token, uint256 amount) internal returns (uint256) {
+    function quoteTokenToWethValue(address token, uint256 amount)
+        internal
+        returns (uint256)
+    {
         // Try Uniswap V2.
         uint128 price = quoteToken(token);
         if (price > 0) {
@@ -197,9 +219,14 @@ contract WethValueInPools {
         return price;
     }
 
-    function quoteTokenUniswapV2(address token) internal returns (uint128 price) {
+    function quoteTokenUniswapV2(address token)
+        internal
+        returns (uint128 price)
+    {
         // Get the pair
-        IUniswapV2Pair pair = IUniswapV2Pair(IUniswapV2Factory(UNISWAP_V2_FACTORY).getPair(token, WETH));
+        IUniswapV2Pair pair = IUniswapV2Pair(
+            IUniswapV2Factory(UNISWAP_V2_FACTORY).getPair(token, WETH)
+        );
         if (address(pair) == ADDRESS_ZERO) {
             return 0;
         }
@@ -208,7 +235,9 @@ contract WethValueInPools {
         // (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         uint112 reserve0;
         uint112 reserve1;
-        try pair.getReserves() returns (uint112 _reserve0, uint112 _reserve1, uint32) {
+        try pair.getReserves() returns (
+            uint112 _reserve0, uint112 _reserve1, uint32
+        ) {
             reserve0 = _reserve0;
             reserve1 = _reserve1;
         } catch {
@@ -219,7 +248,8 @@ contract WethValueInPools {
         }
 
         // Get the decimals of token.
-        (uint8 tokenDecimals, bool tokenDecimalsSuccess) = getTokenDecimalsUnsafe(token);
+        (uint8 tokenDecimals, bool tokenDecimalsSuccess) =
+            getTokenDecimalsUnsafe(token);
         if (!tokenDecimalsSuccess) {
             return 0;
         }
@@ -239,8 +269,10 @@ contract WethValueInPools {
         IUniswapV3Pool pool;
         for (uint256 i = 0; i < feeTiers.length; ++i) {
             // Get the pool
-            IUniswapV3Pool pair =
-                IUniswapV3Pool(IUniswapV3Factory(UNISWAP_V3_FACTORY).getPool(token, WETH, feeTiers[i]));
+            IUniswapV3Pool pair = IUniswapV3Pool(
+                IUniswapV3Factory(UNISWAP_V3_FACTORY)
+                    .getPool(token, WETH, feeTiers[i])
+            );
             if (address(pool) != ADDRESS_ZERO) {
                 pool = pair;
                 break;
@@ -253,14 +285,17 @@ contract WethValueInPools {
 
         // Get slot 0 sqrtPriceX96
         uint160 sqrtPriceX96;
-        try pool.slot0() returns (uint160 _sqrtPriceX96, int24, uint16, uint16, uint16, uint8, bool) {
+        try pool.slot0() returns (
+            uint160 _sqrtPriceX96, int24, uint16, uint16, uint16, uint8, bool
+        ) {
             sqrtPriceX96 = _sqrtPriceX96;
         } catch {
             return 0;
         }
 
         bool token0IsReserve0 = token < WETH;
-        (uint8 tokenDecimals, bool token0DecimalsSuccess) = getTokenDecimalsUnsafe(token);
+        (uint8 tokenDecimals, bool token0DecimalsSuccess) =
+            getTokenDecimalsUnsafe(token);
         if (!token0DecimalsSuccess) {
             return 0;
         }
@@ -276,7 +311,10 @@ contract WethValueInPools {
     }
 
     /// @notice returns true as the second return value if the token decimals can be successfully retrieved
-    function getTokenDecimalsUnsafe(address token) internal returns (uint8, bool) {
+    function getTokenDecimalsUnsafe(address token)
+        internal
+        returns (uint8, bool)
+    {
         (bool tokenDecimalsSuccess, bytes memory tokenDecimalsData) =
             token.call{gas: 20000}(abi.encodeWithSignature("decimals()"));
 

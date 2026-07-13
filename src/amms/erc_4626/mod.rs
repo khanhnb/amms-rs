@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use thiserror::Error;
 use tracing::info;
-use crate::amms::amm::AMMType;
+use crate::amms::amm::{AMMType, FlashType, SwapType};
 
 sol! {
     /// Interface of the IERC4626Valut contract
@@ -254,6 +254,14 @@ impl AutomatedMarketMaker for ERC4626Vault {
 
     fn amm_type(&self) -> AMMType {
         self.amm_type
+    }
+
+    fn swap_type(&self) -> SwapType {
+        SwapType::NotSupported
+    }
+
+    fn flash_type(&self) -> FlashType {
+        FlashType::NotSupported
     }
 }
 

@@ -2,8 +2,13 @@
 pragma solidity ^0.8.0;
 
 contract GetTokenDecimalsBatchRequest {
+    struct Info {
+        uint8 decimals;
+        string symbol;
+    }
+
     constructor(address[] memory tokens) {
-        uint8[] memory decimals = new uint8[](tokens.length);
+        Info[] memory info = new Info[](tokens.length);
 
         for (uint256 i = 0; i < tokens.length; ++i) {
             address token = tokens[i];
@@ -12,17 +17,19 @@ contract GetTokenDecimalsBatchRequest {
 
             (bool tokenDecimalsSuccess, bytes memory tokenDecimalsData) =
                 token.call{gas: 20000}(abi.encodeWithSignature("decimals()"));
+            (bool tokenSymbolSuccess, bytes memory tokenSymbolData) =
+                token.call{gas: 20000}(abi.encodeWithSignature("symbol()"));
 
-            if (tokenDecimalsSuccess) {
+            if (tokenDecimalsSuccess && tokenSymbolSuccess) {
                 uint256 tokenDecimals;
-
                 if (tokenDecimalsData.length == 32) {
                     (tokenDecimals) = abi.decode(tokenDecimalsData, (uint256));
 
                     if (tokenDecimals == 0 || tokenDecimals > 255) {
                         continue;
                     } else {
-                        decimals[i] = uint8(tokenDecimals);
+                        info[i].symbol = abi.decode(tokenSymbolData, (string));
+                        info[i].decimals = uint8(tokenDecimals);
                     }
                 } else {
                     continue;
@@ -32,7 +39,7 @@ contract GetTokenDecimalsBatchRequest {
             }
         }
 
-        bytes memory _abiEncodedData = abi.encode(decimals);
+        bytes memory _abiEncodedData = abi.encode(info);
         assembly {
             // Return from the start of the data (discarding the original data address)
             // up to the end of the memory used

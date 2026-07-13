@@ -7,7 +7,7 @@ use alloy::{
     rpc::client::ClientBuilder,
     transports::layers::{RetryBackoffLayer, ThrottleLayer},
 };
-use amms::amms::{amm::AutomatedMarketMaker, uniswap_v3::UniswapV3Pool};
+use amms::amms::{amm::{AMMType, AutomatedMarketMaker}, uniswap_v3::UniswapV3Pool};
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::Rng;
 use tokio::runtime::Runtime;
@@ -27,7 +27,7 @@ fn simulate_swap(c: &mut Criterion) {
 
     let runtime = Runtime::new().expect("Failed to create Tokio runtime");
     let pool = runtime.block_on(async {
-        UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"))
+        UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"), AMMType::UniswapV3)
             .init(BlockId::latest(), provider.clone())
             .await
             .expect("Could not init pool")

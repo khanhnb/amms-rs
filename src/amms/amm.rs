@@ -14,6 +14,7 @@ use eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[repr(u8)]
 pub enum AMMType {
@@ -22,10 +23,31 @@ pub enum AMMType {
     CleoV2 = 2,
     CleoV3 = 3,
     MoeV2 = 4,
-    AgniV3 = 5,
+    PancakeV3 = 5,
     Balancer = 6,
     ERC4626Vault = 7,
     MoeV22 = 8,
+    AgniV3 = 9,
+    FusionXV2 = 10,
+    FusionXV3 = 11,
+    ButterV3 = 12,
+    #[default]
+    NotSupported = 100,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub enum SwapType {
+    V2 = 0,
+    V3 = 1,
+    MoeV22 = 2,
+    #[default]
+    NotSupported = 100,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub enum FlashType {
+    Normal = 0,
+    AAVE = 1,
     #[default]
     NotSupported = 100,
 }
@@ -49,6 +71,10 @@ pub trait AutomatedMarketMaker {
     fn token1(&self) -> Token;
 
     fn amm_type(&self) -> AMMType;
+
+    fn swap_type(&self) -> SwapType;
+
+    fn flash_type(&self) -> FlashType;
 
     /// Calculates the price of `base_token` in terms of `quote_token`
     fn calculate_price(&self, base_token: Address, quote_token: Address) -> Result<f64, AMMError>;
@@ -155,6 +181,18 @@ macro_rules! amm {
             {
                 match self {
                     $(AMM::$pool_type(pool) => pool.init(block_number, provider).await.map(AMM::$pool_type),)+
+                }
+            }
+
+            fn flash_type(&self) -> FlashType {
+                match self {
+                    $(AMM::$pool_type(pool) => pool.flash_type(),)+
+                }
+            }
+
+            fn swap_type(&self) -> SwapType {
+                match self {
+                    $(AMM::$pool_type(pool) => pool.swap_type(),)+
                 }
             }
         }

@@ -7,13 +7,11 @@ use alloy::{
     transports::layers::{RetryBackoffLayer, ThrottleLayer},
 };
 use amms::{
-    amms::{amm::AMMType, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory},
-    state_space::{
+    amms::{amm::{AMMType, FlashType, SwapType}, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory}, state_space::{
         StateSpaceBuilder, filters::{
             AMMFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter}
         }
-    },
-    sync,
+    }, sync,
 };
 
 #[tokio::main]
@@ -34,7 +32,9 @@ async fn main() -> eyre::Result<()> {
             address!("5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"),
             300,
             10000835,
-            AMMType::UniswapV2
+            AMMType::UniswapV2,
+            SwapType::V2,
+            FlashType::Normal,
         )
         .into(),
         // // UniswapV3

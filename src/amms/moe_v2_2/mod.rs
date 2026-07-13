@@ -15,7 +15,7 @@ use super::{
 
 use crate::{
     amms::{
-        amm::AMMType,
+        amm::{AMMType, FlashType, SwapType},
         consts::MAX_CODE_SIZE,
         moe_v2_2::{
             tree_uint24::TreeUint24,
@@ -43,7 +43,7 @@ use rug::Float;
 use serde::{Deserialize, Serialize};
 use std::{
     cmp::min,
-    collections::{hash_map::Entry, HashMap, HashSet},
+    collections::{HashMap, HashSet},
     future::Future,
     hash::Hash,
 };
@@ -73,6 +73,7 @@ interface ILBPair {
     function getActiveId() external view returns (uint24 activeId);
     function getBin(uint24 id) external view returns (uint128 binReserveX, uint128 binReserveY);
     function getNextNonEmptyBin(bool swapForY, uint24 id) external view returns (uint24 nextId);
+    function totalSupply(uint256 id) external view returns (uint256);
 }}
 
 sol!(
@@ -113,9 +114,15 @@ pub struct MoeV22Pool {
     pub bins: HashMap<u32, U256>,
 
     #[serde(skip_serializing, skip_deserializing, default)]
-    pub bin_bitmap: TreeUint24,
+    pub total_supply: HashMap<u32, U256>,
 
+    #[serde(skip_serializing, skip_deserializing, default)]
+    pub bin_bitmap: TreeUint24,
     pub amm_type: AMMType,
+    #[serde(default)]
+    pub flash_type: FlashType,
+    #[serde(default)]
+    pub swap_type: SwapType,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -186,7 +193,6 @@ impl AutomatedMarketMaker for MoeV22Pool {
         N: Network,
         P: Provider<N> + Clone,
     {
-        todo!();
         let deployer = IGetMoeV22PoolDataBatchRequestInstance::deploy_builder(
             provider.clone(),
             vec![self.address()],
@@ -195,14 +201,16 @@ impl AutomatedMarketMaker for MoeV22Pool {
         let res = deployer.call_raw().block(block_number).await?;
 
         let pool_data =
-            <Vec<(Address, Address, u128, u128, u32, u32)> as SolValue>::abi_decode(&res)?[0];
+            <Vec<(Address, Address, u128, u128, u32, u32, String, String)> as SolValue>::abi_decode(&res)?[0].clone();
 
         if pool_data.0.is_zero() {
             todo!("Return error");
         }
 
-        self.token_a = Token::new_with_decimals(pool_data.0, pool_data.4 as u8);
-        self.token_b = Token::new_with_decimals(pool_data.1, pool_data.5 as u8);
+        self.token_a =
+            Token::new_with_decimals_and_symbol(pool_data.0, pool_data.4 as u8, pool_data.6);
+        self.token_b =
+            Token::new_with_decimals_and_symbol(pool_data.1, pool_data.5 as u8, pool_data.7);
 
         // TODO: populate fee?
 
@@ -220,6 +228,14 @@ impl AutomatedMarketMaker for MoeV22Pool {
     fn amm_type(&self) -> super::amm::AMMType {
         self.amm_type
     }
+
+    fn swap_type(&self) -> SwapType {
+        self.swap_type
+    }
+
+    fn flash_type(&self) -> FlashType {
+        self.flash_type
+    }
 }
 
 pub fn u128_to_float(num: u128) -> Result<Float, AMMError> {
@@ -231,9 +247,17 @@ pub fn u128_to_float(num: u128) -> Result<Float, AMMError> {
 impl MoeV22Pool {
     // Create a new, unsynced UniswapV2 pool
     // TODO: update the init function to derive the fee
-    pub fn new(address: Address, fee: usize) -> Self {
+    pub fn new(
+        address: Address,
+        amm_type: AMMType,
+        swap_type: SwapType,
+        flash_type: FlashType,
+    ) -> Self {
         Self {
             address,
+            amm_type,
+            flash_type,
+            swap_type,
             ..Default::default()
         }
     }
@@ -368,18 +392,26 @@ pub enum MoeV22Error {
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct MoeV22Factory {
     pub address: Address,
-    pub fee: usize,
     pub creation_block: u64,
     pub amm_type: AMMType,
+    pub swap_type: SwapType,
+    pub flash_type: FlashType,
 }
 
 impl MoeV22Factory {
-    pub fn new(address: Address, fee: usize, creation_block: u64, amm_type: AMMType) -> Self {
+    pub fn new(
+        address: Address,
+        creation_block: u64,
+        amm_type: AMMType,
+        swap_type: SwapType,
+        flash_type: FlashType,
+    ) -> Self {
         Self {
             address,
             creation_block,
-            fee,
             amm_type,
+            swap_type,
+            flash_type,
         }
     }
 
@@ -409,13 +441,13 @@ impl MoeV22Factory {
         for i in (0..pairs_length).step_by(step) {
             // Note that the batch contract handles if the step is greater than the pairs length
             // So we can pass the step in as is without checking for this condition
+
             let deployer = IGetMoeV22PairsBatchRequest::deploy_builder(
                 provider.clone(),
                 U256::from(i),
                 U256::from(step),
                 factory_address,
             );
-
             futures_unordered.push(async move {
                 let res = deployer.call_raw().block(block_number).await?;
                 let return_data = <Vec<Address> as SolValue>::abi_decode(&res)?;
@@ -502,6 +534,7 @@ impl MoeV22Factory {
         let mut remaining_code_size = MAX_CODE_SIZE - 64;
         let mut group_range = 0_i32;
         let mut group = vec![];
+        let data_unit = 128i32;
         for pool in pools.iter() {
             let AMM::MoeV22Pool(pool) = pool else {
                 unreachable!()
@@ -513,20 +546,22 @@ impl MoeV22Factory {
             let mut start_bin_id = pool.min_bin_id;
             while start_bin_id <= pool.max_bin_id {
                 let mut end_bin_id = start_bin_id
-                    + U24::from((remaining_code_size - group_range * 64) / 64)
+                    + U24::from((remaining_code_size - group_range * data_unit) / data_unit)
                     - U24::ONE;
                 end_bin_id = min(end_bin_id, pool.max_bin_id);
-                group.push(GetMoeV22PoolBinDataBatchRequest::PoolInfo {
-                    pool: pool.address(),
-                    minId: start_bin_id,
-                    maxId: end_bin_id,
-                });
-                group_range += (end_bin_id - start_bin_id + U24::ONE).to::<i32>();
-                start_bin_id = end_bin_id + U24::ONE;
+                if end_bin_id >= start_bin_id {
+                    group.push(GetMoeV22PoolBinDataBatchRequest::PoolInfo {
+                        pool: pool.address(),
+                        minId: start_bin_id,
+                        maxId: end_bin_id,
+                    });
+                    group_range += (end_bin_id - start_bin_id + U24::ONE).to::<i32>();
+                    start_bin_id = end_bin_id + U24::ONE;
+                }
 
                 // cannot add one more bin range
                 // flush the group
-                if remaining_code_size < (group_range + 1) * 64 {
+                if remaining_code_size < (group_range + 1) * data_unit {
                     // reset
                     remaining_code_size = MAX_CODE_SIZE - 64 * 2;
                     let provider = provider.clone();
@@ -572,7 +607,7 @@ impl MoeV22Factory {
 
         while let Some(res) = futures_unordered.next().await {
             let (pool_info, return_data) = res?;
-            let return_data = <Vec<Vec<(U24, U256)>> as SolValue>::abi_decode(&return_data)?;
+            let return_data = <Vec<Vec<(U24, U256, U256)>> as SolValue>::abi_decode(&return_data)?;
             for (bin_data, pool_info) in return_data.iter().zip(pool_info.iter()) {
                 for bin in bin_data.iter() {
                     let id = bin.0;
@@ -580,6 +615,7 @@ impl MoeV22Factory {
                         unreachable!()
                     };
                     pool.bins.insert(id.to::<u32>(), bin.1);
+                    pool.total_supply.insert(id.to::<u32>(), bin.2);
                 }
             }
             unique_pools.insert(pool_info);
@@ -706,7 +742,7 @@ impl MoeV22Factory {
     {
         let mut cur_progress = 0;
         pb.iter().for_each(|f| f.set_length(pools.len() as u64));
-        let step = 120;
+        let step = 32;
         let pairs = pools
             .iter()
             .chunks(step)
@@ -725,9 +761,9 @@ impl MoeV22Factory {
                 let res = deployer.call_raw().block(block_number).await?;
 
                 let return_data =
-                    <Vec<(Address, Address, u128, u128, u32, u32)> as SolValue>::abi_decode(&res)?;
+                    <Vec<(Address, Address, u128, u128, u32, u32, String, String)> as SolValue>::abi_decode(&res)?;
 
-                Ok::<(Vec<Address>, Vec<(Address, Address, u128, u128, u32, u32)>), AMMError>((
+                Ok::<(Vec<Address>, Vec<(Address, Address, u128, u128, u32, u32, String, String)>), AMMError>((
                     group,
                     return_data,
                 ))
@@ -759,8 +795,16 @@ impl MoeV22Factory {
                     panic!("Unexpected pool type")
                 };
 
-                pool.token_a = Token::new_with_decimals(pool_data.0, pool_data.4 as u8);
-                pool.token_b = Token::new_with_decimals(pool_data.1, pool_data.5 as u8);
+                pool.token_a = Token::new_with_decimals_and_symbol(
+                    pool_data.0,
+                    pool_data.4 as u8,
+                    pool_data.6.clone(),
+                );
+                pool.token_b = Token::new_with_decimals_and_symbol(
+                    pool_data.1,
+                    pool_data.5 as u8,
+                    pool_data.7.clone(),
+                );
             }
         }
 

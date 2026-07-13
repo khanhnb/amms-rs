@@ -1,6 +1,7 @@
 pub mod blacklist;
 pub mod value;
 pub mod whitelist;
+pub mod checkpoint_filter;
 
 use async_trait::async_trait;
 

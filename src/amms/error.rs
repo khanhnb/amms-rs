@@ -50,6 +50,8 @@ pub enum BatchContractError {
     ContractError(#[from] alloy::contract::Error),
     #[error(transparent)]
     DynABIError(#[from] alloy::dyn_abi::Error),
+    #[error(transparent)]
+    SolTypesError(#[from] alloy::sol_types::Error),
 }
 
 #[derive(Error, Debug)]

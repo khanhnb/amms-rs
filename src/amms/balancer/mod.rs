@@ -28,7 +28,7 @@ use super::{
     Token,
 };
 use indicatif::ProgressBar;
-use crate::amms::amm::AMMType;
+use crate::amms::amm::{AMMType, FlashType, SwapType};
 
 sol! {
     #[derive(Debug, PartialEq, Eq)]
@@ -341,7 +341,7 @@ impl AutomatedMarketMaker for BalancerPool {
                     TokenPoolState {
                         liquidity,
                         weight,
-                        token: Token::new_with_decimals(token, decimals as u8),
+                        token: Token::new_with_decimals_and_symbol(token, decimals as u8, String::new()),
                     },
                 )
             })
@@ -364,6 +364,14 @@ impl AutomatedMarketMaker for BalancerPool {
     fn amm_type(&self) -> AMMType {
         self.amm_type
     }
+
+    fn swap_type(&self) -> SwapType {
+        SwapType::NotSupported
+    }
+
+    fn flash_type(&self) -> FlashType {
+        FlashType::NotSupported
+    }
 }
 
 impl BalancerPool {
@@ -376,12 +384,13 @@ impl BalancerPool {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct BalancerFactory {
     pub address: Address,
     pub creation_block: u64,
     pub amm_type: AMMType,
 }
+
 
 #[async_trait]
 impl AutomatedMarketMakerFactory for BalancerFactory {
@@ -456,7 +465,7 @@ impl BalancerFactory {
         BalancerFactory {
             address,
             creation_block,
-            amm_type
+            amm_type,
         }
     }
 
@@ -571,7 +580,7 @@ impl BalancerFactory {
                             TokenPoolState {
                                 liquidity,
                                 weight,
-                                token: Token::new_with_decimals(token, decimals as u8),
+                                token: Token::new_with_decimals_and_symbol(token, decimals as u8, String::new()),
                             },
                         )
                     })
@@ -625,9 +634,9 @@ mod tests {
             .await?;
 
         let weth =
-            Token::new_with_decimals(address!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"), 18);
+            Token::new_with_decimals_and_symbol(address!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"), 18, String::new());
         let usdc =
-            Token::new_with_decimals(address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"), 6);
+            Token::new_with_decimals_and_symbol(address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"), 6, String::new());
 
         let weth_state = balancer_pool.state.get(weth.address()).unwrap();
 

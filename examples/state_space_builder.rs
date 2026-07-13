@@ -8,9 +8,8 @@ use alloy::{
 };
 use amms::{
     amms::{
-        amm::AMMType, erc_4626::ERC4626Vault, uniswap_v2::{UniswapV2Factory, UniswapV2Pool}, uniswap_v3::{UniswapV3Factory, UniswapV3Pool}
-    },
-    state_space::StateSpaceBuilder,
+        amm::{AMMType, FlashType, SwapType}, erc_4626::ERC4626Vault, uniswap_v2::{UniswapV2Factory, UniswapV2Pool}, uniswap_v3::{UniswapV3Factory, UniswapV3Pool}
+    }, state_space::StateSpaceBuilder,
 };
 
 #[tokio::main]
@@ -39,7 +38,9 @@ async fn main() -> eyre::Result<()> {
             address!("5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"),
             300,
             10000835,
-            AMMType::UniswapV2
+            AMMType::UniswapV2,
+            SwapType::V2,
+            FlashType::Normal,
         )
         .into(),
         // UniswapV3
@@ -47,7 +48,9 @@ async fn main() -> eyre::Result<()> {
             address!("1F98431c8aD98523631AE4a59f267346ea31F984"),
             12369621,
             50_000,
-            AMMType::UniswapV3
+            AMMType::UniswapV3,
+            SwapType::V3,
+            FlashType::Normal,
         )
         .into(),
     ];
@@ -64,8 +67,8 @@ async fn main() -> eyre::Result<()> {
     need to track a handful of specific pools.
     */
     let amms = vec![
-        UniswapV2Pool::new(address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"), 300).into(),
-        UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640")).into(),
+        UniswapV2Pool::new(address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"), 300, AMMType::UniswapV2).into(),
+        UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"), AMMType::UniswapV3).into(),
     ];
 
     let _state_space_manager = StateSpaceBuilder::new(provider.clone())

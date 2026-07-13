@@ -8,8 +8,8 @@ fn simulate_swap(c: &mut Criterion) {
     let token_b = address!("fc0d6cf33e38bce7ca7d89c0e292274031b7157a");
 
     let pool = UniswapV2Pool {
-        token_a: Token::new_with_decimals(token_a, 18),
-        token_b: Token::new_with_decimals(token_b, 18),
+        token_a: Token::new_with_decimals_and_symbol(token_a, 18, String::new()),
+        token_b: Token::new_with_decimals_and_symbol(token_b, 18, String::new()),
         reserve_0: 20_000_000_u128,
         reserve_1: 20_000_000_u128,
         fee: 300,

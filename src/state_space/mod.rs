@@ -171,11 +171,11 @@ where
             let amm_checkpoint_path = format!("{}/{}.json", checkpoint_folder, factory.address());
             let discovery_pb = multi_progress.add(init_progress!(
                 0,
-                &format!("Discovery AMM {}", factory.address())
+                &format!("Discovery AMM {:?}", factory.amm_type())
             ));
             let sync_pb = multi_progress.add(init_progress!(
                 0,
-                &format!("Sync AMM {}", factory.address())
+                &format!("Sync AMM {:?}", factory.amm_type())
             ));
 
             futures.push(tokio::spawn(async move {

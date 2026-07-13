@@ -6,16 +6,13 @@ use super::{
 };
 use crate::{
     amms::{
-        amm::AMMType,
-        consts::{MAX_CODE_SIZE, U256_1},
-        uniswap_v3::GetUniswapV3PoolTickBitmapBatchRequest::TickBitmapInfo,
-    },
-    finish_progress, update_progress,
+        amm::{AMMType, FlashType, SwapType}, consts::{MAX_CODE_SIZE, U256_1}, uniswap_v3::GetUniswapV3PoolTickBitmapBatchRequest::TickBitmapInfo,
+    }, finish_progress, update_progress,
 };
 use alloy::{
     eips::BlockId,
     network::Network,
-    primitives::{aliases::I56, Address, Bytes, Signed, B256, I256, U256, U160},
+    primitives::{aliases::I56, Address, Bytes, Signed, B256, I256, U160, U256},
     providers::Provider,
     rpc::types::{Filter, FilterSet, Log},
     sol,
@@ -151,6 +148,10 @@ pub struct UniswapV3Pool {
     #[serde(skip_serializing, default)]
     pub ticks: HashMap<i32, Info>,
     pub amm_type: AMMType,
+    #[serde(default)]
+    pub flash_type: FlashType,
+    #[serde(default)]
+    pub swap_type: SwapType,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -653,13 +654,22 @@ impl AutomatedMarketMaker for UniswapV3Pool {
     fn amm_type(&self) -> AMMType {
         self.amm_type
     }
+
+    fn swap_type(&self) -> SwapType {
+        self.swap_type
+    }
+
+    fn flash_type(&self) -> FlashType {
+        self.flash_type
+    }
 }
 
 impl UniswapV3Pool {
     // Create a new, unsynced UniswapV3 pool
-    pub fn new(address: Address) -> Self {
+    pub fn new(address: Address, amm_type: AMMType) -> Self {
         Self {
             address,
+            amm_type,
             ..Default::default()
         }
     }
@@ -794,15 +804,26 @@ pub struct UniswapV3Factory {
     pub creation_block: u64,
     pub sync_step: u64,
     pub amm_type: AMMType,
+    pub swap_type: SwapType,
+    pub flash_type: FlashType,
 }
 
 impl UniswapV3Factory {
-    pub fn new(address: Address, creation_block: u64, sync_step: u64, amm_type: AMMType) -> Self {
+    pub fn new(
+        address: Address,
+        creation_block: u64,
+        sync_step: u64,
+        amm_type: AMMType,
+        swap_type: SwapType,
+        flash_type: FlashType,
+    ) -> Self {
         UniswapV3Factory {
             address,
             creation_block,
             sync_step,
             amm_type,
+            swap_type,
+            flash_type,
         }
     }
 
@@ -917,12 +938,14 @@ impl UniswapV3Factory {
                 unreachable!()
             };
 
-            if let Some(decimals) = token_decimals.get(&uniswap_v3_pool.token_a.address) {
-                uniswap_v3_pool.token_a.decimals = *decimals;
+            if let Some(info) = token_decimals.get(&uniswap_v3_pool.token_a.address) {
+                uniswap_v3_pool.token_a.decimals = info.0;
+                uniswap_v3_pool.token_a.symbol = info.1.clone();
             }
 
-            if let Some(decimals) = token_decimals.get(&uniswap_v3_pool.token_b.address) {
-                uniswap_v3_pool.token_b.decimals = *decimals;
+            if let Some(info) = token_decimals.get(&uniswap_v3_pool.token_b.address) {
+                uniswap_v3_pool.token_b.decimals = info.0;
+                uniswap_v3_pool.token_b.symbol = info.1.clone();
             }
         }
 
@@ -1246,7 +1269,10 @@ impl UniswapV3Factory {
             pb.iter().for_each(|f| {
                 update_progress!(f, pool_progress.len() as u64);
             });
-            let return_data = <Vec<Vec<(u128, i128, U256, U256, I56, U160, u32, bool)>> as SolValue>::abi_decode(&return_data)?;
+            let return_data =
+                <Vec<Vec<(u128, i128, U256, U256, I56, U160, u32, bool)>> as SolValue>::abi_decode(
+                    &return_data,
+                )?;
 
             for (tick_bitmaps, tick_info) in return_data.iter().zip(tick_info.iter()) {
                 let pool = pool_set.get_mut(&tick_info.pool).unwrap();
@@ -1308,6 +1334,7 @@ impl AutomatedMarketMakerFactory for UniswapV3Factory {
             token_b: pool_created_event.token1.into(),
             fee: pool_created_event.fee.to::<u32>(),
             tick_spacing: pool_created_event.tickSpacing.unchecked_into(),
+            amm_type: self.amm_type,
             ..Default::default()
         }))
     }
@@ -1390,9 +1417,12 @@ mod test {
 
         let provider = ProviderBuilder::new().connect_client(client);
 
-        let pool = UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"))
-            .init(BlockId::latest(), provider.clone())
-            .await?;
+        let pool = UniswapV3Pool::new(
+            address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"),
+            AMMType::UniswapV3,
+        )
+        .init(BlockId::latest(), provider.clone())
+        .await?;
 
         let quoter = IQuoter::new(
             address!("b27308f9f90d607463bb33ea1bebb41c27ce5ab6"),
@@ -1559,9 +1589,12 @@ mod test {
 
         let current_block = BlockId::from(provider.get_block_number().await?);
 
-        let pool = UniswapV3Pool::new(address!("5d4F3C6fA16908609BAC31Ff148Bd002AA6b8c83"))
-            .init(current_block, provider.clone())
-            .await?;
+        let pool = UniswapV3Pool::new(
+            address!("5d4F3C6fA16908609BAC31Ff148Bd002AA6b8c83"),
+            AMMType::UniswapV3,
+        )
+        .init(current_block, provider.clone())
+        .await?;
 
         let quoter = IQuoter::new(
             address!("b27308f9f90d607463bb33ea1bebb41c27ce5ab6"),
@@ -1722,9 +1755,12 @@ mod test {
         let provider = ProviderBuilder::new().connect_client(client);
 
         let block_number = BlockId::from(22000114);
-        let pool = UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"))
-            .init(block_number, provider.clone())
-            .await?;
+        let pool = UniswapV3Pool::new(
+            address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"),
+            AMMType::UniswapV3,
+        )
+        .init(block_number, provider.clone())
+        .await?;
 
         let float_price_a = pool.calculate_price(pool.token_a.address, Address::default())?;
         let float_price_b = pool.calculate_price(pool.token_b.address, Address::default())?;

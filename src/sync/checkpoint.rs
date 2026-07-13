@@ -1,5 +1,12 @@
 use crate::amms::{
-    amm::{AMM, AutomatedMarketMaker}, balancer::BalancerFactory, cleo_v2::CleoV2Factory, error::{AMMError, CheckpointError}, factory::Factory, moe_v2_2::MoeV22Factory, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory
+    amm::{AutomatedMarketMaker, AMM},
+    balancer::BalancerFactory,
+    cleo_v2::CleoV2Factory,
+    error::{AMMError, CheckpointError},
+    factory::Factory,
+    moe_v2_2::MoeV22Factory,
+    uniswap_v2::UniswapV2Factory,
+    uniswap_v3::UniswapV3Factory,
 };
 use alloy::{
     primitives::Address,
@@ -47,6 +54,11 @@ pub fn construct_checkpoint<P>(
 where
     P: AsRef<Path>,
 {
+    // create the checkpoint directory if it doesn't exist
+    let checkpoint_path = checkpoint_path.as_ref();
+    if !checkpoint_path.exists() {
+        std::fs::create_dir_all(checkpoint_path.parent().unwrap())?;
+    }
     let checkpoint = Checkpoint::new(
         SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs_f64() as usize,
         latest_block,
@@ -118,20 +130,38 @@ where
     P: Provider<N> + Clone + 'static,
 {
     let factory: Factory = match factory {
-        Factory::UniswapV2Factory(f) => {
-            UniswapV2Factory::new(f.address, f.fee, from_block, f.amm_type).into()
-        }
-        Factory::CleoV2Factory(f) => {
-            CleoV2Factory::new(f.address, f.fee, from_block, f.amm_type).into()
-        }
-        Factory::UniswapV3Factory(f) => {
-            UniswapV3Factory::new(f.address, from_block, f.sync_step, f.amm_type).into()
-        }
+        Factory::UniswapV2Factory(f) => UniswapV2Factory::new(
+            f.address,
+            f.fee,
+            from_block,
+            f.amm_type,
+            f.swap_type,
+            f.flash_type,
+        )
+        .into(),
+        Factory::CleoV2Factory(f) => CleoV2Factory::new(
+            f.address,
+            f.fee,
+            from_block,
+            f.amm_type,
+            f.swap_type,
+            f.flash_type,
+        )
+        .into(),
+        Factory::UniswapV3Factory(f) => UniswapV3Factory::new(
+            f.address,
+            from_block,
+            f.sync_step,
+            f.amm_type,
+            f.swap_type,
+            f.flash_type,
+        )
+        .into(),
         Factory::BalancerFactory(f) => {
             BalancerFactory::new(f.address, from_block, f.amm_type).into()
         }
         Factory::MoeV22Factory(f) => {
-            MoeV22Factory::new(f.address, f.fee, from_block, f.amm_type).into()
+            MoeV22Factory::new(f.address, from_block, f.amm_type, f.swap_type, f.flash_type).into()
         }
     };
 

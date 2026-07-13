@@ -4,11 +4,8 @@ use std::{
 };
 
 use alloy::{
-    dyn_abi::DynSolType,
-    network::Network,
-    primitives::{Address, U256},
-    providers::Provider,
-    sol,
+    eips::BlockId, network::Network, primitives::Address, providers::Provider, sol,
+    sol_types::SolValue,
 };
 use error::{AMMError, BatchContractError};
 use futures::{stream::FuturesUnordered, StreamExt};
@@ -37,12 +34,16 @@ sol!(
 #[sol(rpc)]
 contract IERC20 {
     function decimals() external view returns (uint8);
+    function symbol() external view returns (string memory);
 });
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Token {
     pub address: Address,
+    #[serde(default)]
     pub decimals: u8,
+    #[serde(default)]
+    pub symbol: String,
     // TODO: add optional tax
 }
 
@@ -52,13 +53,28 @@ impl Token {
         N: Network,
         P: Provider<N> + Clone,
     {
-        let decimals = IERC20::new(address, provider).decimals().call().await?;
+        let ierc20 = IERC20::new(address, provider);
+        let decimals = ierc20.decimals().call().await?;
+        let symbol = ierc20.symbol().call().await?;
 
-        Ok(Self { address, decimals })
+        Ok(Self {
+            address,
+            decimals,
+            symbol,
+        })
     }
 
-    pub const fn new_with_decimals(address: Address, decimals: u8) -> Self {
-        Self { address, decimals }
+    // Used by v2-like amms
+    pub const fn new_with_decimals_and_symbol(
+        address: Address,
+        decimals: u8,
+        symbol: String,
+    ) -> Self {
+        Self {
+            address,
+            decimals,
+            symbol,
+        }
     }
 
     pub const fn address(&self) -> &Address {
@@ -75,6 +91,7 @@ impl From<Address> for Token {
         Self {
             address,
             decimals: 0,
+            symbol: String::new(),
         }
     }
 }
@@ -89,47 +106,38 @@ impl Hash for Token {
 ///
 /// # Returns
 /// A map of token addresses to their decimal precision.
+/// Used by v3-like amms.
 pub async fn get_token_decimals<N, P>(
     tokens: Vec<Address>,
     provider: P,
-) -> Result<HashMap<Address, u8>, BatchContractError>
+) -> Result<HashMap<Address, (u8, String)>, BatchContractError>
 where
     N: Network,
     P: Provider<N> + Clone + Clone,
 {
-    let step = 765;
+    let step = 128;
 
     let mut futures = FuturesUnordered::new();
     tokens.chunks(step).for_each(|group| {
         let provider = provider.clone();
-
+        let deployer =
+            GetTokenDecimalsBatchRequest::deploy_builder(provider.clone(), group.to_vec());
         futures.push(async move {
-            (
-                group,
-                GetTokenDecimalsBatchRequest::deploy_builder(provider, group.to_vec())
-                    .call_raw()
-                    .await,
-            )
+            let res = deployer.call_raw().block(BlockId::latest()).await?;
+            let return_data = <Vec<(u32, String)> as SolValue>::abi_decode(&res)?;
+            Ok::<(Vec<Address>, Vec<(u32, String)>), BatchContractError>((
+                group.to_vec(),
+                return_data,
+            ))
         });
     });
 
     let mut token_decimals = HashMap::new();
-    let return_type = DynSolType::Array(Box::new(DynSolType::Uint(8)));
-
     while let Some(res) = futures.next().await {
-        let (token_addresses, return_data) = res;
-
-        let return_data = return_type.abi_decode_sequence(&return_data?)?;
-
-        if let Some(tokens_arr) = return_data.as_array() {
-            for (decimals, token_address) in tokens_arr.iter().zip(token_addresses.iter()) {
-                token_decimals.insert(
-                    *token_address,
-                    decimals.as_uint().expect("Could not get uint").0.to::<u8>(),
-                );
-            }
+        let (group, return_data) = res?;
+        for (pool_data, pool_address) in return_data.iter().zip(group.iter()) {
+            token_decimals.insert(*pool_address, (pool_data.0 as u8, pool_data.1.clone()));
         }
     }
     Ok(token_decimals)
 }
-

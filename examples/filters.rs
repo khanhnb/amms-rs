@@ -5,8 +5,7 @@ use alloy::{
     transports::layers::{RetryBackoffLayer, ThrottleLayer},
 };
 use amms::{
-    amms::{amm::AMMType, uniswap_v2::UniswapV2Factory},
-    state_space::{
+    amms::{amm::{AMMType, FlashType, SwapType}, uniswap_v2::UniswapV2Factory}, state_space::{
         StateSpaceBuilder, filters::{
             AMMFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter}
         }
@@ -33,6 +32,8 @@ async fn main() -> eyre::Result<()> {
             300,
             10000835,
             AMMType::UniswapV2,
+            SwapType::V2,
+            FlashType::Normal,
         )
         .into(),
     ];

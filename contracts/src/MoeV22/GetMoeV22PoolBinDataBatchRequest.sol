@@ -35,6 +35,7 @@ contract GetMoeV22PoolBinDataBatchRequest {
     struct BinData {
         uint24 id;
         bytes32 reserves;
+        bytes32 totalSupply;
     }
 
     constructor(PoolInfo[] memory poolInfo) {
@@ -54,7 +55,9 @@ contract GetMoeV22PoolBinDataBatchRequest {
                 if (reserveX == 0 && reserveY == 0) {
                     continue;
                 }
-                allBinData[binDataIndex] = BinData(id, encode(reserveX, reserveY));
+                bytes32 totalSupply = bytes32(ILBPair(pool).totalSupply(id));
+                allBinData[binDataIndex] =
+                    BinData(id, encode(reserveX, reserveY), totalSupply);
                 ++binDataIndex;
             }
             assembly {

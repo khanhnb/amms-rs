@@ -20,6 +20,7 @@ use std::{
 };
 use crate::amms::cleo_v2::CleoV2Factory;
 use crate::amms::moe_v2_2::MoeV22Factory;
+use crate::amms::amm::{AMMType, FlashType, SwapType};
 
 pub trait DiscoverySync {
     fn discover<N, P>(
@@ -110,6 +111,12 @@ macro_rules! factory {
             pub fn variant(&self) -> Variant {
                 match self {
                     $(Factory::$factory_type(factory) => AMM::from(factory.pool_variant()).variant(),)+
+                }
+            }
+
+            pub fn amm_type(&self) -> AMMType {
+                match self {
+                    $(Factory::$factory_type(factory) => factory.amm_type,)+
                 }
             }
         }
@@ -224,6 +231,14 @@ impl AutomatedMarketMaker for NoopAMM {
     }
 
     fn amm_type(&self) -> super::amm::AMMType {
+        todo!()
+    }
+
+    fn swap_type(&self) -> SwapType {
+        todo!()
+    }
+
+    fn flash_type(&self) -> FlashType {
         todo!()
     }
 }

@@ -32,6 +32,8 @@ contract GetMoeV22PoolDataBatchRequest {
         uint128 reserve1;
         uint8 tokenADecimals;
         uint8 tokenBDecimals;
+        string symbolA;
+        string symbolB;
     }
 
     constructor(address[] memory pools) {
@@ -52,13 +54,18 @@ contract GetMoeV22PoolDataBatchRequest {
             if (codeSizeIsZero(poolData.tokenA)) continue;
             if (codeSizeIsZero(poolData.tokenB)) continue;
 
-            // Get tokenA decimals
+            // Get tokenA decimals and symbol
+            (bool symbolASuccess, bytes memory symbolAData) = poolData.tokenA
+            .call{gas: 20000}(
+                abi.encodeWithSignature("symbol()")
+            );
             (bool tokenADecimalsSuccess, bytes memory tokenADecimalsData) = poolData.tokenA
             .call{gas: 20000}(
                 abi.encodeWithSignature("decimals()")
             );
 
-            if (tokenADecimalsSuccess) {
+            if (tokenADecimalsSuccess && symbolASuccess) {
+                poolData.symbolA = abi.decode(symbolAData, (string));
                 uint256 tokenADecimals;
 
                 if (tokenADecimalsData.length == 32) {
@@ -76,13 +83,18 @@ contract GetMoeV22PoolDataBatchRequest {
                 continue;
             }
 
-            // Get tokenB decimals
+            // Get tokenA decimals and symbol
+            (bool symbolBSuccess, bytes memory symbolBData) = poolData.tokenB
+            .call{gas: 20000}(
+                abi.encodeWithSignature("symbol()")
+            );
             (bool tokenBDecimalsSuccess, bytes memory tokenBDecimalsData) = poolData.tokenB
             .call{gas: 20000}(
                 abi.encodeWithSignature("decimals()")
             );
 
-            if (tokenBDecimalsSuccess) {
+            if (tokenBDecimalsSuccess && symbolBSuccess) {
+                poolData.symbolB = abi.decode(symbolBData, (string));
                 uint256 tokenBDecimals;
 
                 if (tokenBDecimalsData.length == 32) {

@@ -22,4 +22,6 @@ interface ILBPair {
         external
         view
         returns (uint24 nextId);
+
+    function totalSupply(uint256 id) external view returns (uint256);
 }

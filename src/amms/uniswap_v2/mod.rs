@@ -12,7 +12,9 @@ use super::{
     Token,
 };
 
-use crate::{amms::amm::AMMType, finish_progress, update_progress};
+use crate::{
+    amms::amm::{AMMType, FlashType, SwapType}, finish_progress, update_progress,
+};
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -88,6 +90,10 @@ pub struct UniswapV2Pool {
     pub reserve_1: u128,
     pub fee: usize,
     pub amm_type: AMMType,
+    #[serde(default)]
+    pub swap_type: SwapType,
+    #[serde(default)]
+    pub flash_type: FlashType,
 }
 
 impl AutomatedMarketMaker for UniswapV2Pool {
@@ -192,14 +198,16 @@ impl AutomatedMarketMaker for UniswapV2Pool {
         let res = deployer.call_raw().block(block_number).await?;
 
         let pool_data =
-            <Vec<(Address, Address, u128, u128, u32, u32)> as SolValue>::abi_decode(&res)?[0];
+            <Vec<(Address, Address, u128, u128, u32, u32, String, String)> as SolValue>::abi_decode(&res)?[0].clone();
 
         if pool_data.0.is_zero() {
             todo!("Return error");
         }
 
-        self.token_a = Token::new_with_decimals(pool_data.0, pool_data.4 as u8);
-        self.token_b = Token::new_with_decimals(pool_data.1, pool_data.5 as u8);
+        self.token_a =
+            Token::new_with_decimals_and_symbol(pool_data.0, pool_data.4 as u8, pool_data.6);
+        self.token_b =
+            Token::new_with_decimals_and_symbol(pool_data.1, pool_data.5 as u8, pool_data.7);
         self.reserve_0 = pool_data.2;
         self.reserve_1 = pool_data.3;
 
@@ -219,6 +227,15 @@ impl AutomatedMarketMaker for UniswapV2Pool {
     fn amm_type(&self) -> super::amm::AMMType {
         self.amm_type
     }
+
+    fn swap_type(&self) -> SwapType {
+        self.swap_type
+    }
+
+    fn flash_type(&self) -> FlashType {
+        self.flash_type
+    }
+
 }
 
 pub fn u128_to_float(num: u128) -> Result<Float, AMMError> {
@@ -230,10 +247,11 @@ pub fn u128_to_float(num: u128) -> Result<Float, AMMError> {
 impl UniswapV2Pool {
     // Create a new, unsynced UniswapV2 pool
     // TODO: update the init function to derive the fee
-    pub fn new(address: Address, fee: usize) -> Self {
+    pub fn new(address: Address, fee: usize, amm_type: AMMType) -> Self {
         Self {
             address,
             fee,
+            amm_type,
             ..Default::default()
         }
     }
@@ -388,15 +406,26 @@ pub struct UniswapV2Factory {
     pub fee: usize,
     pub creation_block: u64,
     pub amm_type: AMMType,
+    pub swap_type: SwapType,
+    pub flash_type: FlashType,
 }
 
 impl UniswapV2Factory {
-    pub fn new(address: Address, fee: usize, creation_block: u64, amm_type: AMMType) -> Self {
+    pub fn new(
+        address: Address,
+        fee: usize,
+        creation_block: u64,
+        amm_type: AMMType,
+        swap_type: SwapType,
+        flash_type: FlashType,
+    ) -> Self {
         Self {
             address,
             creation_block,
             fee,
-            amm_type
+            amm_type,
+            swap_type,
+            flash_type,
         }
     }
 
@@ -472,7 +501,7 @@ impl UniswapV2Factory {
     {
         let mut cur_progress = 0;
         pb.iter().for_each(|f| f.set_length(amms.len() as u64));
-        let step = 120;
+        let step = 32;
         let pairs = amms
             .iter()
             .chunks(step)
@@ -491,9 +520,9 @@ impl UniswapV2Factory {
                 let res = deployer.call_raw().block(block_number).await?;
 
                 let return_data =
-                    <Vec<(Address, Address, u128, u128, u32, u32)> as SolValue>::abi_decode(&res)?;
+                    <Vec<(Address, Address, u128, u128, u32, u32, String, String)> as SolValue>::abi_decode(&res)?;
 
-                Ok::<(Vec<Address>, Vec<(Address, Address, u128, u128, u32, u32)>), AMMError>((
+                Ok::<(Vec<Address>, Vec<(Address, Address, u128, u128, u32, u32, String, String)>), AMMError>((
                     group,
                     return_data,
                 ))
@@ -525,8 +554,16 @@ impl UniswapV2Factory {
                     panic!("Unexpected pool type")
                 };
 
-                pool.token_a = Token::new_with_decimals(pool_data.0, pool_data.4 as u8);
-                pool.token_b = Token::new_with_decimals(pool_data.1, pool_data.5 as u8);
+                pool.token_a = Token::new_with_decimals_and_symbol(
+                    pool_data.0,
+                    pool_data.4 as u8,
+                    pool_data.6.clone(),
+                );
+                pool.token_b = Token::new_with_decimals_and_symbol(
+                    pool_data.1,
+                    pool_data.5 as u8,
+                    pool_data.7.clone(),
+                );
                 pool.reserve_0 = pool_data.2;
                 pool.reserve_1 = pool_data.3;
             }
@@ -572,6 +609,8 @@ impl AutomatedMarketMakerFactory for UniswapV2Factory {
             reserve_1: 0,
             fee: self.fee,
             amm_type: self.amm_type,
+            swap_type: self.swap_type,
+            flash_type: self.flash_type,
         }))
     }
 
@@ -614,6 +653,8 @@ impl DiscoverySync for UniswapV2Factory {
                         reserve_1: 0,
                         fee: self.fee,
                         amm_type: self.amm_type,
+                        swap_type: self.swap_type,
+                        flash_type: self.flash_type,
                     })
                 })
                 .collect())
@@ -644,7 +685,7 @@ impl DiscoverySync for UniswapV2Factory {
 #[cfg(test)]
 mod tests {
     use crate::amms::{
-        Token, amm::{AMMType, AutomatedMarketMaker}, consts::U256_100000, uniswap_v2::UniswapV2Pool
+        Token, amm::{AMMType, AutomatedMarketMaker, FlashType, SwapType}, consts::U256_100000, uniswap_v2::UniswapV2Pool,
     };
     use alloy::primitives::{address, Address, U256};
 
@@ -672,18 +713,22 @@ mod tests {
         let token_b = address!("8f18dc399594b451eda8c5da02d0563c0b2d0f16");
         let pool = UniswapV2Pool {
             address: address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"),
-            token_a: Token::new_with_decimals(
+            token_a: Token::new_with_decimals_and_symbol(
                 address!("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
                 6,
+                String::new(),
             ),
-            token_b: Token::new_with_decimals(
+            token_b: Token::new_with_decimals_and_symbol(
                 address!("C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
                 18,
+                String::new(),
             ),
             reserve_0: 23595096345912178729927,
             reserve_1: 154664232014390554564,
             fee: 300,
             amm_type: AMMType::UniswapV2,
+            swap_type: SwapType::V2,
+            flash_type: FlashType::Normal,
         };
 
         assert!(pool.calculate_price(token_a, Address::default()).unwrap() != 0.0);
@@ -694,18 +739,22 @@ mod tests {
     async fn test_calculate_price() {
         let pool = UniswapV2Pool {
             address: address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"),
-            token_a: Token::new_with_decimals(
+            token_a: Token::new_with_decimals_and_symbol(
                 address!("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
                 6,
+                String::new(),
             ),
-            token_b: Token::new_with_decimals(
+            token_b: Token::new_with_decimals_and_symbol(
                 address!("C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
                 18,
+                String::new(),
             ),
             reserve_0: 47092140895915,
             reserve_1: 28396598565590008529300,
             fee: 300,
             amm_type: AMMType::UniswapV2,
+            swap_type: SwapType::V2,
+            flash_type: FlashType::Normal,
         };
 
         let price_a_64_x = pool
@@ -725,18 +774,22 @@ mod tests {
     async fn test_calculate_price_64_x_64() {
         let pool = UniswapV2Pool {
             address: address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"),
-            token_a: Token::new_with_decimals(
+            token_a: Token::new_with_decimals_and_symbol(
                 address!("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
                 6,
+                String::new(),
             ),
-            token_b: Token::new_with_decimals(
+            token_b: Token::new_with_decimals_and_symbol(
                 address!("C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
                 18,
+                String::new(),
             ),
             reserve_0: 47092140895915,
             reserve_1: 28396598565590008529300,
             fee: 300,
             amm_type: AMMType::UniswapV2,
+            swap_type: SwapType::V2,
+            flash_type: FlashType::Normal,
         };
 
         let price_a_64_x = pool.calculate_price_64_x_64(pool.token_a.address).unwrap();

@@ -20,5 +20,5 @@ contract GetPoolDataBatchRequest is Test {
         address[] memory input = new address[](1);
         input[0] = 0xA8E84F6EaF172C8E3Cd5C53c760FCE54b29E161B;
         moeV22 = new GetMoeV22PoolDataBatchRequest(input);
-    } 
+    }
 }

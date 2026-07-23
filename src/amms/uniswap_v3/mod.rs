@@ -666,10 +666,12 @@ impl AutomatedMarketMaker for UniswapV3Pool {
 
 impl UniswapV3Pool {
     // Create a new, unsynced UniswapV3 pool
-    pub fn new(address: Address, amm_type: AMMType) -> Self {
+    pub fn new(address: Address, amm_type: AMMType, swap_type: SwapType, flash_type: FlashType) -> Self {
         Self {
             address,
             amm_type,
+            swap_type,
+            flash_type,
             ..Default::default()
         }
     }
@@ -1335,6 +1337,8 @@ impl AutomatedMarketMakerFactory for UniswapV3Factory {
             fee: pool_created_event.fee.to::<u32>(),
             tick_spacing: pool_created_event.tickSpacing.unchecked_into(),
             amm_type: self.amm_type,
+            swap_type: self.swap_type,
+            flash_type: self.flash_type,
             ..Default::default()
         }))
     }
@@ -1420,6 +1424,8 @@ mod test {
         let pool = UniswapV3Pool::new(
             address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"),
             AMMType::UniswapV3,
+            SwapType::V3,
+            FlashType::Normal,
         )
         .init(BlockId::latest(), provider.clone())
         .await?;
@@ -1592,6 +1598,8 @@ mod test {
         let pool = UniswapV3Pool::new(
             address!("5d4F3C6fA16908609BAC31Ff148Bd002AA6b8c83"),
             AMMType::UniswapV3,
+            SwapType::V3,
+            FlashType::Normal,
         )
         .init(current_block, provider.clone())
         .await?;
@@ -1758,6 +1766,8 @@ mod test {
         let pool = UniswapV3Pool::new(
             address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"),
             AMMType::UniswapV3,
+            SwapType::V3,
+            FlashType::Normal,
         )
         .init(block_number, provider.clone())
         .await?;

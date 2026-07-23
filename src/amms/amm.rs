@@ -31,6 +31,7 @@ pub enum AMMType {
     FusionXV2 = 10,
     FusionXV3 = 11,
     ButterV3 = 12,
+    FluxionV3 = 13,
     #[default]
     NotSupported = 100,
 }

@@ -117,10 +117,24 @@ pub struct MoeV22Pool {
     pub total_supply: HashMap<u32, U256>,
 
     #[serde(skip_serializing, skip_deserializing, default)]
+    pub reserve_x: u128,
+
+    #[serde(skip_serializing, skip_deserializing, default)]
+    pub reserve_y: u128,
+
+    #[serde(skip_serializing, skip_deserializing, default)]
+    pub protocol_fee_x: u128,
+
+    #[serde(skip_serializing, skip_deserializing, default)]
+    pub protocol_fee_y: u128,
+
+    #[serde(skip_serializing, skip_deserializing, default)]
     pub bin_bitmap: TreeUint24,
     pub amm_type: AMMType,
+
     #[serde(default)]
     pub flash_type: FlashType,
+
     #[serde(default)]
     pub swap_type: SwapType,
 }
@@ -761,9 +775,9 @@ impl MoeV22Factory {
                 let res = deployer.call_raw().block(block_number).await?;
 
                 let return_data =
-                    <Vec<(Address, Address, u128, u128, u32, u32, String, String)> as SolValue>::abi_decode(&res)?;
+                    <Vec<(Address, Address, u128, u128, u32, u32, String, String, u128, u128)> as SolValue>::abi_decode(&res)?;
 
-                Ok::<(Vec<Address>, Vec<(Address, Address, u128, u128, u32, u32, String, String)>), AMMError>((
+                Ok::<(Vec<Address>, Vec<(Address, Address, u128, u128, u32, u32, String, String, u128, u128)>), AMMError>((
                     group,
                     return_data,
                 ))
@@ -794,7 +808,10 @@ impl MoeV22Factory {
                     // TODO:: We should never receive a non MoeV22Pool AMM here, we can handle this more gracefully in the future
                     panic!("Unexpected pool type")
                 };
-
+                pool.reserve_x = pool_data.2;
+                pool.reserve_y = pool_data.3;
+                pool.protocol_fee_x = pool_data.8;
+                pool.protocol_fee_y = pool_data.9;
                 pool.token_a = Token::new_with_decimals_and_symbol(
                     pool_data.0,
                     pool_data.4 as u8,
@@ -834,6 +851,8 @@ impl AutomatedMarketMakerFactory for MoeV22Factory {
             token_a: event.tokenX.into(),
             token_b: event.tokenY.into(),
             amm_type: self.amm_type,
+            swap_type: self.swap_type,
+            flash_type: self.flash_type,
             ..Default::default()
         }))
     }
@@ -873,6 +892,8 @@ impl DiscoverySync for MoeV22Factory {
                         token_a: Address::default().into(),
                         token_b: Address::default().into(),
                         amm_type: self.amm_type,
+                        swap_type: self.swap_type,
+                        flash_type: self.flash_type,
                         ..Default::default()
                     })
                 })

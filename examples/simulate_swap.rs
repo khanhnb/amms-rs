@@ -5,7 +5,7 @@ use alloy::{
     primitives::address, providers::ProviderBuilder, rpc::client::ClientBuilder,
     transports::layers::RetryBackoffLayer,
 };
-use amms::amms::amm::{AMMType, AutomatedMarketMaker};
+use amms::amms::amm::{AMMType, AutomatedMarketMaker, FlashType, SwapType};
 use amms::amms::uniswap_v3::UniswapV3Pool;
 use std::sync::Arc;
 
@@ -19,7 +19,7 @@ async fn main() -> eyre::Result<()> {
 
     let provider = Arc::new(ProviderBuilder::new().connect_client(client));
 
-    let pool = UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"), AMMType::UniswapV3)
+    let pool = UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"), AMMType::UniswapV3, SwapType::V3, FlashType::Normal)
         .init(BlockId::latest(), provider)
         .await?;
 

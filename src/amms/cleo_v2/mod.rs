@@ -244,11 +244,13 @@ pub fn u128_to_float(num: u128) -> Result<Float, AMMError> {
 impl CleoV2Pool {
     // Create a new, unsynced UniswapV2 pool
     // TODO: update the init function to derive the fee
-    pub fn new(address: Address, fee: usize, amm_type: AMMType) -> Self {
+    pub fn new(address: Address, fee: usize, amm_type: AMMType, swap_type: SwapType, flash_type: FlashType) -> Self {
         Self {
             address,
             fee,
             amm_type,
+            swap_type,
+            flash_type,
             ..Default::default()
         }
     }

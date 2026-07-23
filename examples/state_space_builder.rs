@@ -67,8 +67,8 @@ async fn main() -> eyre::Result<()> {
     need to track a handful of specific pools.
     */
     let amms = vec![
-        UniswapV2Pool::new(address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"), 300, AMMType::UniswapV2).into(),
-        UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"), AMMType::UniswapV3).into(),
+        UniswapV2Pool::new(address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"), 300, AMMType::UniswapV2, SwapType::V2, FlashType::Normal).into(),
+        UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"), AMMType::UniswapV3, SwapType::V3, FlashType::Normal).into(),
     ];
 
     let _state_space_manager = StateSpaceBuilder::new(provider.clone())

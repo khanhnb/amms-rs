@@ -7,7 +7,7 @@ use alloy::{
 };
 use amms::amms::{amm::AutomatedMarketMaker, uniswap_v2::UniswapV2Pool};
 use std::sync::Arc;
-use amms::amms::amm::AMMType;
+use amms::amms::amm::{AMMType, FlashType, SwapType};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -19,7 +19,7 @@ async fn main() -> eyre::Result<()> {
 
     let provider = Arc::new(ProviderBuilder::new().connect_client(client));
 
-    let pool = UniswapV2Pool::new(address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"), 300, AMMType::UniswapV2)
+    let pool = UniswapV2Pool::new(address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"), 300, AMMType::UniswapV2, SwapType::V2, FlashType::Normal)
         .init(BlockId::latest(), provider)
         .await?;
 

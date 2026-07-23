@@ -9,6 +9,10 @@ interface ILBPair {
         external
         view
         returns (uint128 reserveX, uint128 reserveY);
+    function getProtocolFees()
+        external
+        view
+        returns (uint128 protocolFeeX, uint128 protocolFeeY);
     function getActiveId() external view returns (uint24 activeId);
     function getBin(uint24 id)
         external
@@ -34,6 +38,8 @@ contract GetMoeV22PoolDataBatchRequest {
         uint8 tokenBDecimals;
         string symbolA;
         string symbolB;
+        uint128 protocolFeeX;
+        uint128 protocolFeeY;
     }
 
     constructor(address[] memory pools) {
@@ -115,6 +121,8 @@ contract GetMoeV22PoolDataBatchRequest {
             // Get reserves
             (poolData.reserve0, poolData.reserve1) =
                 ILBPair(poolAddress).getReserves();
+            (poolData.protocolFeeX, poolData.protocolFeeY) =
+                ILBPair(poolAddress).getProtocolFees();
 
             allPoolData[i] = poolData;
         }

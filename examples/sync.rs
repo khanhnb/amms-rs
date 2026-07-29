@@ -51,17 +51,17 @@ async fn main() -> eyre::Result<()> {
         //     AMMType::CleoV2,
         // )
         // .into(),
-        // // Agni - v3
-        // UniswapV3Factory::new(
-        //     address!("0x25780dc8Fc3cfBD75F33bFDAB65e969b603b2035"),
-        //     110692,
-        //     // 60_000_000,
-        //     10_000,
-        //     AMMType::AgniV3,
-        //     SwapType::V3,
-        //     FlashType::Normal,
-        // )
-        // .into(),
+        // Agni - v3
+        UniswapV3Factory::new(
+            address!("0x25780dc8Fc3cfBD75F33bFDAB65e969b603b2035"),
+            110692,
+            // 60_000_000,
+            10_000,
+            AMMType::AgniV3,
+            SwapType::V3,
+            FlashType::Normal,
+        )
+        .into(),
         // // cleo - v3
         // UniswapV3Factory::new(
         //     address!("0xAAA32926fcE6bE95ea2c51cB4Fcb60836D320C42"),
@@ -70,14 +70,14 @@ async fn main() -> eyre::Result<()> {
         //     AMMType::CleoV3
         // )
         // .into(),
-        MoeV22Factory::new(
-            address!("0xa6630671775c4EA2743840F9A5016dCf2A104054"),
-            61742960,
-            AMMType::MoeV22,
-            SwapType::MoeV22,
-            FlashType::AAVE,
-        )
-        .into(),
+        // MoeV22Factory::new(
+        //     address!("0xa6630671775c4EA2743840F9A5016dCf2A104054"),
+        //     61742960,
+        //     AMMType::MoeV22,
+        //     SwapType::MoeV22,
+        //     FlashType::AAVE,
+        // )
+        // .into(),
         // FusionX V3
         // UniswapV3Factory::new(
         //     address!("0x530d2766D1988CC1c000C8b7d00334c14B69AD71"),
@@ -130,7 +130,7 @@ async fn main() -> eyre::Result<()> {
     let _state_space_manager = StateSpaceBuilder::new(sync_provider.clone())
         .with_filters(filters)
         .with_factories(factories)
-        .sync_from_checkpoint(checkpoint_folder, true)
+        .sync_from_checkpoint(checkpoint_folder, true, None)
         .await?;
 
     println!(

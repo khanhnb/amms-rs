@@ -44,6 +44,7 @@ pub const CACHE_SIZE: usize = 30;
 #[derive(Clone)]
 pub struct StateSpaceManager<N, P> {
     pub state: Arc<RwLock<StateSpace>>,
+    // data is SYNCED to this block not DISCOVERED
     pub latest_block: Arc<AtomicU64>,
     // discovery_manager: Option<DiscoveryManager>,
     pub block_filter: Filter,
@@ -141,6 +142,7 @@ where
         self,
         checkpoint_folder: &str,
         sync_data: bool,
+        sync_data_to_block: Option<u64>,
     ) -> Result<StateSpaceManager<N, P>, AMMError> {
         tracing::info!(?self.factories, "Syncing AMMs");
         let mut futures = FuturesUnordered::new();
@@ -225,11 +227,13 @@ where
                     return Ok::<Vec<AMM>, AMMError>(discovered_amms);
                 }
 
+                let sync_data_to_block = sync_data_to_block.unwrap_or(current_block);
+
                 //sync data
                 discovered_amms = factory
                     .sync(
                         discovered_amms,
-                        current_block.into(),
+                        sync_data_to_block.into(),
                         provider.clone(),
                         Some(&sync_pb),
                     )
@@ -266,7 +270,7 @@ where
         }
 
         Ok(StateSpaceManager {
-            latest_block: Arc::new(AtomicU64::new(current_block)),
+            latest_block: Arc::new(AtomicU64::new(sync_data_to_block.unwrap_or(current_block))),
             state: Arc::new(RwLock::new(state_space)),
             block_filter,
             provider: self.provider,

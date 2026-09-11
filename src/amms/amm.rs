@@ -41,6 +41,7 @@ pub enum SwapType {
     V2 = 0,
     V3 = 1,
     MoeV22 = 2,
+    Transfer = 3,
     #[default]
     NotSupported = 100,
 }

@@ -6,11 +6,19 @@ use alloy::{
 use alloy_provider::ProviderBuilder;
 use amms::{
     amms::{
-        amm::{AMM, AMMType, AutomatedMarketMaker, FlashType, SwapType}, cleo_v2::CleoV2Factory, moe_v2_2::{MoeV22Factory, tree_uint24::TreeUint24}, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory,
-    }, state_space::{
-        StateSpaceBuilder, filters::{
-            AMMFilter, checkpoint_filter::CheckpointFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter},
+        amm::{AMMType, AutomatedMarketMaker, FlashType, SwapType, AMM},
+        cleo_v2::CleoV2Factory,
+        moe_v2_2::{tree_uint24::TreeUint24, MoeV22Factory},
+        uniswap_v2::UniswapV2Factory,
+        uniswap_v3::UniswapV3Factory,
+    },
+    state_space::{
+        filters::{
+            checkpoint_filter::CheckpointFilter,
+            whitelist::{PoolWhitelistFilter, TokenWhitelistFilter},
+            AMMFilter,
         },
+        StateSpaceBuilder,
     },
 };
 use std::{
@@ -52,12 +60,22 @@ async fn main() -> eyre::Result<()> {
         // )
         // .into(),
         // Agni - v3
+        // UniswapV3Factory::new(
+        //     address!("0x25780dc8Fc3cfBD75F33bFDAB65e969b603b2035"),
+        //     110692,
+        //     // 60_000_000,
+        //     10_000,
+        //     AMMType::AgniV3,
+        //     SwapType::V3,
+        //     FlashType::Normal,
+        // )
+        // .into(),
         UniswapV3Factory::new(
-            address!("0x25780dc8Fc3cfBD75F33bFDAB65e969b603b2035"),
-            110692,
+            address!("0x0d922Fb1Bc191F64970ac40376643808b4B74Df9"),
+            63795918,
             // 60_000_000,
             10_000,
-            AMMType::AgniV3,
+            AMMType::OkuV3,
             SwapType::V3,
             FlashType::Normal,
         )

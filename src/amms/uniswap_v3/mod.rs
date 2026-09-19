@@ -902,8 +902,7 @@ impl UniswapV3Factory {
             .par_drain(..)
             .filter(|pool| match pool {
                 AMM::UniswapV3Pool(uv3_pool) => {
-                    uv3_pool.liquidity > 0
-                        && uv3_pool.token_a.decimals > 0
+                        uv3_pool.token_a.decimals > 0
                         && uv3_pool.token_b.decimals > 0
                 }
                 _ => true,

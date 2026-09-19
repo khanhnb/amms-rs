@@ -33,6 +33,8 @@ pub enum AMMType {
     ButterV3 = 12,
     FluxionV3 = 13,
     OkuV3 = 14,
+    UnknownV3_1 = 15,
+    DyorSwapV2 = 16,
     #[default]
     NotSupported = 100,
 }

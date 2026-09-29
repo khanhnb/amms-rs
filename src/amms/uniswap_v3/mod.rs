@@ -6,8 +6,11 @@ use super::{
 };
 use crate::{
     amms::{
-        amm::{AMMType, FlashType, SwapType}, consts::{MAX_CODE_SIZE, U256_1}, uniswap_v3::GetUniswapV3PoolTickBitmapBatchRequest::TickBitmapInfo,
-    }, finish_progress, update_progress,
+        amm::{AMMType, FlashType, SwapType},
+        consts::{MAX_CODE_SIZE, U256_1},
+        uniswap_v3::GetUniswapV3PoolTickBitmapBatchRequest::TickBitmapInfo,
+    },
+    finish_progress, update_progress,
 };
 use alloy::{
     eips::BlockId,
@@ -666,7 +669,12 @@ impl AutomatedMarketMaker for UniswapV3Pool {
 
 impl UniswapV3Pool {
     // Create a new, unsynced UniswapV3 pool
-    pub fn new(address: Address, amm_type: AMMType, swap_type: SwapType, flash_type: FlashType) -> Self {
+    pub fn new(
+        address: Address,
+        amm_type: AMMType,
+        swap_type: SwapType,
+        flash_type: FlashType,
+    ) -> Self {
         Self {
             address,
             amm_type,
@@ -902,8 +910,7 @@ impl UniswapV3Factory {
             .par_drain(..)
             .filter(|pool| match pool {
                 AMM::UniswapV3Pool(uv3_pool) => {
-                        uv3_pool.token_a.decimals > 0
-                        && uv3_pool.token_b.decimals > 0
+                    uv3_pool.token_a.decimals > 0 && uv3_pool.token_b.decimals > 0
                 }
                 _ => true,
             })

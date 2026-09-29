@@ -1,7 +1,13 @@
+use crate::{
+    amms::{
+        amm::{AutomatedMarketMaker, AMM},
+        error::AMMError,
+    },
+    state_space::filters::{AMMFilter, FilterStage},
+};
 use alloy::primitives::Address;
 use async_trait::async_trait;
 use std::collections::HashSet;
-use crate::{amms::{amm::{AMM, AutomatedMarketMaker}, error::AMMError}, state_space::filters::{AMMFilter, FilterStage}};
 
 #[derive(Debug, Clone)]
 pub struct CheckpointFilter {
@@ -30,4 +36,3 @@ impl AMMFilter for CheckpointFilter {
         FilterStage::Discovery
     }
 }
-

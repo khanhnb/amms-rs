@@ -1,7 +1,7 @@
 pub mod blacklist;
+pub mod checkpoint_filter;
 pub mod value;
 pub mod whitelist;
-pub mod checkpoint_filter;
 
 use async_trait::async_trait;
 
@@ -44,4 +44,3 @@ pub enum FilterStage {
     Discovery,
     Sync,
 }
-

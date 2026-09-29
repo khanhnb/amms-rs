@@ -1,4 +1,4 @@
-use std::{collections::HashMap, marker::PhantomData, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug, marker::PhantomData};
 
 use super::{AMMFilter, FilterStage};
 use crate::amms::{
@@ -20,7 +20,6 @@ sol! {
     WethValueInPoolsBatchRequest,
     "src/amms/abi/WethValueInPoolsBatchRequest.json"
 }
-
 
 #[derive(Clone)]
 pub struct ValueFilter<const CHUNK_SIZE: usize, N, P>

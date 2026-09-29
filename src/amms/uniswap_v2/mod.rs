@@ -13,7 +13,8 @@ use super::{
 };
 
 use crate::{
-    amms::amm::{AMMType, FlashType, SwapType}, finish_progress, update_progress,
+    amms::amm::{AMMType, FlashType, SwapType},
+    finish_progress, update_progress,
 };
 use alloy::{
     eips::BlockId,
@@ -233,7 +234,6 @@ impl AutomatedMarketMaker for UniswapV2Pool {
     fn flash_type(&self) -> FlashType {
         self.flash_type
     }
-
 }
 
 pub fn u128_to_float(num: u128) -> Result<Float, AMMError> {
@@ -245,7 +245,13 @@ pub fn u128_to_float(num: u128) -> Result<Float, AMMError> {
 impl UniswapV2Pool {
     // Create a new, unsynced UniswapV2 pool
     // TODO: update the init function to derive the fee
-    pub fn new(address: Address, fee: usize, amm_type: AMMType, swap_type: SwapType, flash_type: FlashType) -> Self {
+    pub fn new(
+        address: Address,
+        fee: usize,
+        amm_type: AMMType,
+        swap_type: SwapType,
+        flash_type: FlashType,
+    ) -> Self {
         Self {
             address,
             fee,
@@ -685,7 +691,10 @@ impl DiscoverySync for UniswapV2Factory {
 #[cfg(test)]
 mod tests {
     use crate::amms::{
-        Token, amm::{AMMType, AutomatedMarketMaker, FlashType, SwapType}, consts::U256_100000, uniswap_v2::UniswapV2Pool,
+        amm::{AMMType, AutomatedMarketMaker, FlashType, SwapType},
+        consts::U256_100000,
+        uniswap_v2::UniswapV2Pool,
+        Token,
     };
     use alloy::primitives::{address, Address, U256};
 

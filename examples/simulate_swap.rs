@@ -19,9 +19,14 @@ async fn main() -> eyre::Result<()> {
 
     let provider = Arc::new(ProviderBuilder::new().connect_client(client));
 
-    let pool = UniswapV3Pool::new(address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"), AMMType::UniswapV3, SwapType::V3, FlashType::Normal)
-        .init(BlockId::latest(), provider)
-        .await?;
+    let pool = UniswapV3Pool::new(
+        address!("88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"),
+        AMMType::UniswapV3,
+        SwapType::V3,
+        FlashType::Normal,
+    )
+    .init(BlockId::latest(), provider)
+    .await?;
 
     // Note that the token out does not need to be specified when
     // simulating a swap for pools with only two tokens.

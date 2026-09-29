@@ -2,11 +2,11 @@ use super::{
     balancer::BalancerError, erc_4626::ERC4626VaultError, uniswap_v2::UniswapV2Error,
     uniswap_v3::UniswapV3Error,
 };
+use crate::amms::moe_v2_2::MoeV22Error;
 use alloy::{primitives::FixedBytes, transports::TransportErrorKind};
 use std::time::SystemTimeError;
 use thiserror::Error;
 use tokio::task::JoinError;
-use crate::amms::moe_v2_2::MoeV22Error;
 
 #[derive(Error, Debug)]
 pub enum AMMError {

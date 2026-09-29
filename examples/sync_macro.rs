@@ -7,11 +7,19 @@ use alloy::{
     transports::layers::{RetryBackoffLayer, ThrottleLayer},
 };
 use amms::{
-    amms::{amm::{AMMType, FlashType, SwapType}, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory}, state_space::{
-        StateSpaceBuilder, filters::{
-            AMMFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter}
-        }
-    }, sync,
+    amms::{
+        amm::{AMMType, FlashType, SwapType},
+        uniswap_v2::UniswapV2Factory,
+        uniswap_v3::UniswapV3Factory,
+    },
+    state_space::{
+        filters::{
+            whitelist::{PoolWhitelistFilter, TokenWhitelistFilter},
+            AMMFilter,
+        },
+        StateSpaceBuilder,
+    },
+    sync,
 };
 
 #[tokio::main]

@@ -2,7 +2,7 @@ use super::{
     balancer::BalancerPool, erc_4626::ERC4626Vault, error::AMMError, uniswap_v2::UniswapV2Pool,
     uniswap_v3::UniswapV3Pool,
 };
-use crate::amms::{Token, cleo_v2::CleoV2Pool, moe_v2_2::MoeV22Pool};
+use crate::amms::{cleo_v2::CleoV2Pool, moe_v2_2::MoeV22Pool, Token};
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -44,7 +44,8 @@ pub enum SwapType {
     V2 = 0,
     V3 = 1,
     MoeV22 = 2,
-    Transfer = 3,
+    Settlement = 3,
+    NormalTransfer = 4,
     #[default]
     NotSupported = 100,
 }

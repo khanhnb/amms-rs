@@ -6,7 +6,12 @@ use alloy::{
 };
 use alloy_provider::WsConnect;
 use amms::{
-    amms::{amm::{AMMType, FlashType, SwapType}, uniswap_v2::UniswapV2Factory, uniswap_v3::UniswapV3Factory}, state_space::StateSpaceBuilder,
+    amms::{
+        amm::{AMMType, FlashType, SwapType},
+        uniswap_v2::UniswapV2Factory,
+        uniswap_v3::UniswapV3Factory,
+    },
+    state_space::StateSpaceBuilder,
 };
 use futures::StreamExt;
 use std::sync::Arc;

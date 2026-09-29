@@ -774,13 +774,37 @@ impl MoeV22Factory {
             futures_unordered.push(async move {
                 let res = deployer.call_raw().block(block_number).await?;
 
-                let return_data =
-                    <Vec<(Address, Address, u128, u128, u32, u32, String, String, u128, u128)> as SolValue>::abi_decode(&res)?;
+                let return_data = <Vec<(
+                    Address,
+                    Address,
+                    u128,
+                    u128,
+                    u32,
+                    u32,
+                    String,
+                    String,
+                    u128,
+                    u128,
+                )> as SolValue>::abi_decode(&res)?;
 
-                Ok::<(Vec<Address>, Vec<(Address, Address, u128, u128, u32, u32, String, String, u128, u128)>), AMMError>((
-                    group,
-                    return_data,
-                ))
+                Ok::<
+                    (
+                        Vec<Address>,
+                        Vec<(
+                            Address,
+                            Address,
+                            u128,
+                            u128,
+                            u32,
+                            u32,
+                            String,
+                            String,
+                            u128,
+                            u128,
+                        )>,
+                    ),
+                    AMMError,
+                >((group, return_data))
             });
         }
 

@@ -5,6 +5,7 @@ use super::{
     float::q64_to_float,
     uniswap_v2::div_uu,
 };
+use crate::amms::amm::{AMMType, FlashType, SwapType};
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -18,7 +19,6 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use thiserror::Error;
 use tracing::info;
-use crate::amms::amm::{AMMType, FlashType, SwapType};
 
 sol! {
     /// Interface of the IERC4626Valut contract

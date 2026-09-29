@@ -4,6 +4,9 @@ use super::{
     balancer::BalancerFactory,
     error::AMMError,
 };
+use crate::amms::amm::{AMMType, FlashType, SwapType};
+use crate::amms::cleo_v2::CleoV2Factory;
+use crate::amms::moe_v2_2::MoeV22Factory;
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -18,9 +21,6 @@ use std::{
     future::Future,
     hash::{Hash, Hasher},
 };
-use crate::amms::cleo_v2::CleoV2Factory;
-use crate::amms::moe_v2_2::MoeV22Factory;
-use crate::amms::amm::{AMMType, FlashType, SwapType};
 
 pub trait DiscoverySync {
     fn discover<N, P>(
@@ -168,7 +168,13 @@ macro_rules! factory {
     };
 }
 
-factory!(UniswapV2Factory, UniswapV3Factory, BalancerFactory, CleoV2Factory, MoeV22Factory);
+factory!(
+    UniswapV2Factory,
+    UniswapV3Factory,
+    BalancerFactory,
+    CleoV2Factory,
+    MoeV22Factory
+);
 
 #[derive(Default)]
 pub struct NoopAMM;

@@ -5,10 +5,16 @@ use alloy::{
     transports::layers::{RetryBackoffLayer, ThrottleLayer},
 };
 use amms::{
-    amms::{amm::{AMMType, FlashType, SwapType}, uniswap_v2::UniswapV2Factory}, state_space::{
-        StateSpaceBuilder, filters::{
-            AMMFilter, whitelist::{PoolWhitelistFilter, TokenWhitelistFilter}
-        }
+    amms::{
+        amm::{AMMType, FlashType, SwapType},
+        uniswap_v2::UniswapV2Factory,
+    },
+    state_space::{
+        filters::{
+            whitelist::{PoolWhitelistFilter, TokenWhitelistFilter},
+            AMMFilter,
+        },
+        StateSpaceBuilder,
     },
 };
 use std::sync::Arc;

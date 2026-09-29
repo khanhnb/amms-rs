@@ -14,11 +14,13 @@ use super::{
 
 use crate::{
     amms::{
-        amm::{AMMType, FlashType, SwapType}, uniswap_v2::{
+        amm::{AMMType, FlashType, SwapType},
+        uniswap_v2::{
             IGetUniswapV2PoolDataBatchRequest::IGetUniswapV2PoolDataBatchRequestInstance,
             UniswapV2Error,
         },
-    }, finish_progress, update_progress,
+    },
+    finish_progress, update_progress,
 };
 use alloy::{
     eips::BlockId,
@@ -244,7 +246,13 @@ pub fn u128_to_float(num: u128) -> Result<Float, AMMError> {
 impl CleoV2Pool {
     // Create a new, unsynced UniswapV2 pool
     // TODO: update the init function to derive the fee
-    pub fn new(address: Address, fee: usize, amm_type: AMMType, swap_type: SwapType, flash_type: FlashType) -> Self {
+    pub fn new(
+        address: Address,
+        fee: usize,
+        amm_type: AMMType,
+        swap_type: SwapType,
+        flash_type: FlashType,
+    ) -> Self {
         Self {
             address,
             fee,
@@ -416,7 +424,7 @@ impl CleoV2Factory {
         creation_block: u64,
         amm_type: AMMType,
         swap_type: SwapType,
-        flash_type: FlashType
+        flash_type: FlashType,
     ) -> Self {
         Self {
             address,
@@ -684,7 +692,10 @@ impl DiscoverySync for CleoV2Factory {
 #[cfg(test)]
 mod tests {
     use crate::amms::{
-        Token, amm::{AMMType, AutomatedMarketMaker, FlashType, SwapType}, consts::U256_100000, uniswap_v2::UniswapV2Pool,
+        amm::{AMMType, AutomatedMarketMaker, FlashType, SwapType},
+        consts::U256_100000,
+        uniswap_v2::UniswapV2Pool,
+        Token,
     };
     use alloy::primitives::{address, Address, U256};
 

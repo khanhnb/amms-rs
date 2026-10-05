@@ -35,6 +35,7 @@ pub enum AMMType {
     OkuV3 = 14,
     UnknownV3_1 = 15,
     DyorSwapV2 = 16,
+    CrustV3 = 17,
     #[default]
     NotSupported = 100,
 }

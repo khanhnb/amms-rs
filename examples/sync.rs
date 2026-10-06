@@ -147,12 +147,23 @@ async fn main() -> eyre::Result<()> {
         // )
         // .into(),
 
-        // Crust V3
+        // // Crust V3
+        // UniswapV3Factory::new(
+        //     address!("0xEaD128BDF9Cff441eF401Ec8D18a96b4A2d25252"),
+        //     62692352,
+        //     10_000,
+        //     AMMType::CrustV3,
+        //     SwapType::V3,
+        //     FlashType::Normal,
+        // )
+        // .into(),
+
+        // MethLab V3
         UniswapV3Factory::new(
-            address!("0xEaD128BDF9Cff441eF401Ec8D18a96b4A2d25252"),
-            62692352,
+            address!("0x8f140Fc3e9211b8DC2fC1D7eE3292F6817C5dD5D"),
+            59915640,
             10_000,
-            AMMType::CrustV3,
+            AMMType::MethLabV3,
             SwapType::V3,
             FlashType::Normal,
         )

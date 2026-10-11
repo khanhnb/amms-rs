@@ -39,6 +39,10 @@ pub enum AMMType {
     MethLabV3 = 18,
     UnknownV3_2 = 19,
     AgniV2 = 20,
+    // Blast: Thruster V2 pairs keep reserves in storage slot 7 (Uniswap V2 uses 8).
+    // Values are pool type codes for LilRouter.sol: append only, never renumber.
+    ThrusterV2 = 21,
+    ThrusterV2Fee100 = 22,
     #[default]
     NotSupported = 100,
 }

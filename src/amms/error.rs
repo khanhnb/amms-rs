@@ -42,6 +42,8 @@ pub enum AMMError {
     IOError(#[from] std::io::Error),
     #[error(transparent)]
     MoeV22Error(#[from] MoeV22Error),
+    #[error(transparent)]
+    AlgebraError(#[from] crate::amms::algebra::AlgebraError),
 }
 
 #[derive(Error, Debug)]

@@ -1,4 +1,5 @@
 use crate::amms::{
+    algebra::AlgebraFactory,
     amm::{AutomatedMarketMaker, AMM},
     balancer::BalancerFactory,
     cleo_v2::CleoV2Factory,
@@ -163,6 +164,15 @@ where
         Factory::MoeV22Factory(f) => {
             MoeV22Factory::new(f.address, from_block, f.amm_type, f.swap_type, f.flash_type).into()
         }
+        Factory::AlgebraFactory(f) => AlgebraFactory::new(
+            f.address,
+            from_block,
+            f.sync_step,
+            f.amm_type,
+            f.swap_type,
+            f.flash_type,
+        )
+        .into(),
     };
 
     let amms = factory.discover(to_block.into(), provider, pb).await?;

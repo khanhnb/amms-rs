@@ -11,6 +11,7 @@ use error::{AMMError, BatchContractError};
 use futures::{stream::FuturesUnordered, StreamExt};
 use serde::{Deserialize, Serialize};
 
+pub mod algebra;
 pub mod amm;
 pub mod balancer;
 pub mod cleo_v2;

@@ -37,6 +37,7 @@ pub enum AMMType {
     DyorSwapV2 = 16,
     CrustV3 = 17,
     MethLabV3 = 18,
+    UnknownV3_2 = 19,
     #[default]
     NotSupported = 100,
 }

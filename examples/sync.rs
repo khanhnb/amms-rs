@@ -168,13 +168,22 @@ async fn main() -> eyre::Result<()> {
         //     FlashType::Normal,
         // )
         // .into(),
-        UniswapV3Factory::new(
-            address!("0xae411e11D9fA2773CEaC200cC2C73F17324Fc93B"),
-            35714,
-            // 60_000_000,
-            10_000,
-            AMMType::UnknownV3_2,
-            SwapType::V3,
+        // UniswapV3Factory::new(
+        //     address!("0xae411e11D9fA2773CEaC200cC2C73F17324Fc93B"),
+        //     35714,
+        //     // 60_000_000,
+        //     10_000,
+        //     AMMType::UnknownV3_2,
+        //     SwapType::V3,
+        //     FlashType::Normal,
+        // )
+        // .into(),
+        UniswapV2Factory::new(
+            address!("0xd7D3e1116277a0f8b6f23cc64D5Ea56982822Dde"),
+            25,
+            79842307,
+            AMMType::AgniV2,
+            SwapType::V2,
             FlashType::Normal,
         )
         .into(),

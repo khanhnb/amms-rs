@@ -38,6 +38,7 @@ pub enum AMMType {
     CrustV3 = 17,
     MethLabV3 = 18,
     UnknownV3_2 = 19,
+    AgniV2 = 20,
     #[default]
     NotSupported = 100,
 }

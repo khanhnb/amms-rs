@@ -45,6 +45,10 @@ pub enum AMMType {
     AlgebraIntegral = 21,
     // ... or at slot 3 (factory 0xa87d…: one extra slot before the Algebra layout)
     AlgebraIntegralSlot3 = 22,
+    // Mantle types added on amms main as 19 / 20 (taken by Thruster on this branch).
+    // Kept here so the bot's Mantle code compiles on feat/blast-chain; LilRouter maps 23 / 24.
+    UnknownV3_2 = 23,
+    AgniV2 = 24,
     #[default]
     NotSupported = 100,
 }

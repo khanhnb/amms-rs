@@ -23,6 +23,7 @@ pub mod float;
 pub mod moe_v2_2;
 pub mod uniswap_v2;
 pub mod uniswap_v3;
+pub mod uniswap_v4;
 
 sol! {
     #[sol(rpc)]

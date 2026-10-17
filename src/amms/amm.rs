@@ -2,7 +2,10 @@ use super::{
     balancer::BalancerPool, erc_4626::ERC4626Vault, error::AMMError, uniswap_v2::UniswapV2Pool,
     uniswap_v3::UniswapV3Pool,
 };
-use crate::amms::{algebra::AlgebraPool, cleo_v2::CleoV2Pool, moe_v2_2::MoeV22Pool, Token};
+use crate::amms::{
+    algebra::AlgebraPool, cleo_v2::CleoV2Pool, moe_v2_2::MoeV22Pool, uniswap_v4::UniswapV4Pool,
+    Token,
+};
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -47,6 +50,7 @@ pub enum AMMType {
     AlgebraIntegral = 23,
     // ... or at slot 3 (factory 0xa87d…: one extra slot before the Algebra layout)
     AlgebraIntegralSlot3 = 24,
+    UniswapV4 = 25,
     #[default]
     NotSupported = 100,
 }
@@ -60,6 +64,8 @@ pub enum SwapType {
     NormalTransfer = 4,
     // Algebra: swap and callback like V3, but the price is read with globalState() not slot0()
     Algebra = 5,
+    // Uniswap V4: PoolManager.unlock -> swap -> settle / take (flash accounting)
+    V4 = 6,
     #[default]
     NotSupported = 100,
 }
@@ -262,5 +268,6 @@ amm!(
     BalancerPool,
     CleoV2Pool,
     MoeV22Pool,
-    AlgebraPool
+    AlgebraPool,
+    UniswapV4Pool
 );

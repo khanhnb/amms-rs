@@ -8,6 +8,7 @@ use crate::amms::{
     moe_v2_2::MoeV22Factory,
     uniswap_v2::UniswapV2Factory,
     uniswap_v3::UniswapV3Factory,
+    uniswap_v4::UniswapV4Factory,
 };
 use alloy::{
     primitives::Address,
@@ -168,6 +169,16 @@ where
             f.address,
             from_block,
             f.sync_step,
+            f.amm_type,
+            f.swap_type,
+            f.flash_type,
+        )
+        .into(),
+        Factory::UniswapV4Factory(f) => UniswapV4Factory::new(
+            f.address,
+            from_block,
+            f.sync_step,
+            f.wrapped_native,
             f.amm_type,
             f.swap_type,
             f.flash_type,

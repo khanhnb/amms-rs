@@ -44,6 +44,8 @@ pub enum AMMError {
     MoeV22Error(#[from] MoeV22Error),
     #[error(transparent)]
     AlgebraError(#[from] crate::amms::algebra::AlgebraError),
+    #[error(transparent)]
+    UniswapV4Error(#[from] crate::amms::uniswap_v4::UniswapV4Error),
 }
 
 #[derive(Error, Debug)]

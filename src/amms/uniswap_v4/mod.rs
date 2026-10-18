@@ -114,11 +114,19 @@ impl UniswapV4Pool {
 
     /// Currency0 / currency1 as the PoolManager sees them (`address(0)` for native ETH).
     pub fn currency0(&self) -> Address {
-        if self.native0 { Address::ZERO } else { self.token_a.address }
+        if self.native0 {
+            Address::ZERO
+        } else {
+            self.token_a.address
+        }
     }
 
     pub fn currency1(&self) -> Address {
-        if self.native1 { Address::ZERO } else { self.token_b.address }
+        if self.native1 {
+            Address::ZERO
+        } else {
+            self.token_b.address
+        }
     }
 
     /// `PoolId` of a PoolKey: `keccak256(abi.encode(currency0, currency1, fee, tickSpacing, hooks))`.
@@ -236,7 +244,15 @@ impl UniswapV4Factory {
         swap_type: SwapType,
         flash_type: FlashType,
     ) -> Self {
-        Self { address, creation_block, sync_step, wrapped_native, amm_type, swap_type, flash_type }
+        Self {
+            address,
+            creation_block,
+            sync_step,
+            wrapped_native,
+            amm_type,
+            swap_type,
+            flash_type,
+        }
     }
 
     /// Pool from an `Initialize` log, or `None` for pools the bot cannot trade (hooks, dynamic
@@ -249,7 +265,13 @@ impl UniswapV4Factory {
         }
         let native0 = event.currency0 == Address::ZERO;
         let native1 = event.currency1 == Address::ZERO;
-        let wrap = |c: Address| if c == Address::ZERO { self.wrapped_native } else { c };
+        let wrap = |c: Address| {
+            if c == Address::ZERO {
+                self.wrapped_native
+            } else {
+                c
+            }
+        };
         let (token0, token1) = (wrap(event.currency0), wrap(event.currency1));
         if token0 == token1 {
             return Ok(None);
@@ -287,7 +309,8 @@ impl UniswapV4Factory {
             .address(vec![self.address]);
         let to = block_number.as_u64().unwrap_or_default();
         let step = self.sync_step.max(1);
-        pb.iter().for_each(|f| f.set_length(to.saturating_sub(self.creation_block) + 1));
+        pb.iter()
+            .for_each(|f| f.set_length(to.saturating_sub(self.creation_block) + 1));
 
         let mut futures = FuturesUnordered::new();
         let mut from = self.creation_block;
@@ -337,7 +360,9 @@ impl UniswapV4Factory {
         let tokens: HashSet<Address> = pools.iter().flat_map(|p| p.tokens()).collect();
         let info = get_token_decimals(tokens.into_iter().collect(), provider).await?;
         for pool in pools.iter_mut() {
-            let AMM::UniswapV4Pool(p) = pool else { continue };
+            let AMM::UniswapV4Pool(p) = pool else {
+                continue;
+            };
             if let Some((d, s)) = info.get(&p.token_a.address) {
                 p.token_a.decimals = *d;
                 p.token_a.symbol = s.clone();
@@ -513,9 +538,18 @@ mod tests {
     fn hooked_dynamic_fee_and_eth_weth_pools_are_skipped() {
         let f = factory();
         let hook = address!("00000000000000000000000000000000000000ff");
-        assert!(f.pool_from_log(&init_log(Address::ZERO, USDC, 500, 10, hook)).unwrap().is_none());
         assert!(f
-            .pool_from_log(&init_log(Address::ZERO, USDC, DYNAMIC_FEE_FLAG, 10, Address::ZERO))
+            .pool_from_log(&init_log(Address::ZERO, USDC, 500, 10, hook))
+            .unwrap()
+            .is_none());
+        assert!(f
+            .pool_from_log(&init_log(
+                Address::ZERO,
+                USDC,
+                DYNAMIC_FEE_FLAG,
+                10,
+                Address::ZERO
+            ))
             .unwrap()
             .is_none());
         // ETH / WETH would become WETH / WETH
@@ -535,7 +569,10 @@ mod tests {
             200,
             Address::ZERO,
         );
-        assert_eq!(id, b256!("bdc2d59ae33f62bf24d372dff7bf5a9ee917ef2b883e80207e138cafaeb7dad8"));
+        assert_eq!(
+            id,
+            b256!("bdc2d59ae33f62bf24d372dff7bf5a9ee917ef2b883e80207e138cafaeb7dad8")
+        );
     }
 
     #[test]

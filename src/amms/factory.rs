@@ -4,9 +4,9 @@ use super::{
     balancer::BalancerFactory,
     error::AMMError,
 };
+use crate::amms::algebra::AlgebraFactory;
 use crate::amms::amm::{AMMType, FlashType, SwapType};
 use crate::amms::cleo_v2::CleoV2Factory;
-use crate::amms::algebra::AlgebraFactory;
 use crate::amms::moe_v2_2::MoeV22Factory;
 use crate::amms::uniswap_v4::UniswapV4Factory;
 use alloy::{

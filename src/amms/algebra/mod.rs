@@ -106,7 +106,12 @@ impl AutomatedMarketMaker for AlgebraPool {
         Err(AlgebraError::SimulationNotSupported.into())
     }
 
-    fn simulate_swap(&self, _base: Address, _quote: Address, _amount_in: U256) -> Result<U256, AMMError> {
+    fn simulate_swap(
+        &self,
+        _base: Address,
+        _quote: Address,
+        _amount_in: U256,
+    ) -> Result<U256, AMMError> {
         Err(AlgebraError::SimulationNotSupported.into())
     }
 
@@ -152,7 +157,14 @@ impl AlgebraFactory {
         swap_type: SwapType,
         flash_type: FlashType,
     ) -> Self {
-        Self { address, creation_block, sync_step, amm_type, swap_type, flash_type }
+        Self {
+            address,
+            creation_block,
+            sync_step,
+            amm_type,
+            swap_type,
+            flash_type,
+        }
     }
 
     pub async fn get_all_pools<N, P>(
@@ -170,7 +182,8 @@ impl AlgebraFactory {
             .address(vec![self.address]);
         let to = block_number.as_u64().unwrap_or_default();
         let step = self.sync_step.max(1);
-        pb.iter().for_each(|f| f.set_length(to.saturating_sub(self.creation_block) + 1));
+        pb.iter()
+            .for_each(|f| f.set_length(to.saturating_sub(self.creation_block) + 1));
 
         let mut futures = FuturesUnordered::new();
         let mut from = self.creation_block;
@@ -329,10 +342,21 @@ mod tests {
             },
             ..Default::default()
         };
-        let AMM::AlgebraPool(p) = f.create_pool(log).unwrap() else { panic!("not an Algebra pool") };
-        assert_eq!(p.address, address!("4c577f4873061003d6c83eaac20e24397ff5b89b"));
-        assert_eq!(p.token_a.address, address!("4300000000000000000000000000000000000003"));
-        assert_eq!(p.token_b.address, address!("b1a5700fa2358173fe465e6ea4ff52e36e88e2ad"));
+        let AMM::AlgebraPool(p) = f.create_pool(log).unwrap() else {
+            panic!("not an Algebra pool")
+        };
+        assert_eq!(
+            p.address,
+            address!("4c577f4873061003d6c83eaac20e24397ff5b89b")
+        );
+        assert_eq!(
+            p.token_a.address,
+            address!("4300000000000000000000000000000000000003")
+        );
+        assert_eq!(
+            p.token_b.address,
+            address!("b1a5700fa2358173fe465e6ea4ff52e36e88e2ad")
+        );
         assert_eq!(p.amm_type, AMMType::AlgebraIntegral);
         assert_eq!(p.swap_type, SwapType::Algebra);
     }

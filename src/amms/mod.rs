@@ -11,6 +11,7 @@ use error::{AMMError, BatchContractError};
 use futures::{stream::FuturesUnordered, StreamExt};
 use serde::{Deserialize, Serialize};
 
+pub mod algebra;
 pub mod amm;
 pub mod balancer;
 pub mod cleo_v2;
@@ -22,6 +23,7 @@ pub mod float;
 pub mod moe_v2_2;
 pub mod uniswap_v2;
 pub mod uniswap_v3;
+pub mod uniswap_v4;
 
 sol! {
     #[sol(rpc)]

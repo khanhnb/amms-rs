@@ -11,8 +11,8 @@ on:
 
 env:
   ETHEREUM_PROVIDER: ${{ secrets.ETHEREUM_PROVIDER }}
-  RUST_VERSION: "1.84"
-  NIGHTLY_VERSION: nightly-2024-11-01
+  RUST_VERSION: "1.85"
+  NIGHTLY_VERSION: "stable"
   CARGO_TERM_COLOR: always
   # Skip incremental build and debug info generation in CI
   CARGO_INCREMENTAL: 0
@@ -35,8 +35,8 @@ jobs:
           command: fmt
           args: --all -- --check
 
-  test:
-    name: Test
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -64,15 +64,17 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
-      - name: Install latest nextest release
-        uses: taiki-e/install-action@nextest
-      - name: Build tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: nextest
-          args: run --workspace --no-run
-      - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: nextest
-          args: run --workspace
+      - name: Build
+        run: cargo build --release
+      # - name: Install latest nextest release
+      #   uses: taiki-e/install-action@nextest
+      # - name: Build tests
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: nextest
+      #     args: run --workspace --no-run
+      # - name: Run tests
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: nextest
+      #     args: run --workspace

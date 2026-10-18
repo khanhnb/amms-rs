@@ -2,7 +2,10 @@ use super::{
     balancer::BalancerPool, erc_4626::ERC4626Vault, error::AMMError, uniswap_v2::UniswapV2Pool,
     uniswap_v3::UniswapV3Pool,
 };
-use crate::amms::{cleo_v2::CleoV2Pool, moe_v2_2::MoeV22Pool, Token};
+use crate::amms::{
+    algebra::AlgebraPool, cleo_v2::CleoV2Pool, moe_v2_2::MoeV22Pool, uniswap_v4::UniswapV4Pool,
+    Token,
+};
 use alloy::{
     eips::BlockId,
     network::Network,
@@ -39,6 +42,15 @@ pub enum AMMType {
     MethLabV3 = 18,
     UnknownV3_2 = 19,
     AgniV2 = 20,
+    // Blast: Thruster V2 pairs keep reserves in storage slot 7 (Uniswap V2 uses 8).
+    // Values are pool type codes for LilRouter.sol: append only, never renumber.
+    ThrusterV2 = 21,
+    ThrusterV2Fee100 = 22,
+    // Blast: Algebra Integral pools (AlgebraPool). globalState packed at storage slot 2 ...
+    AlgebraIntegral = 23,
+    // ... or at slot 3 (factory 0xa87d…: one extra slot before the Algebra layout)
+    AlgebraIntegralSlot3 = 24,
+    UniswapV4 = 25,
     #[default]
     NotSupported = 100,
 }
@@ -50,6 +62,10 @@ pub enum SwapType {
     MoeV22 = 2,
     Settlement = 3,
     NormalTransfer = 4,
+    // Algebra: swap and callback like V3, but the price is read with globalState() not slot0()
+    Algebra = 5,
+    // Uniswap V4: PoolManager.unlock -> swap -> settle / take (flash accounting)
+    V4 = 6,
     #[default]
     NotSupported = 100,
 }
@@ -251,5 +267,7 @@ amm!(
     ERC4626Vault,
     BalancerPool,
     CleoV2Pool,
-    MoeV22Pool
+    MoeV22Pool,
+    AlgebraPool,
+    UniswapV4Pool
 );

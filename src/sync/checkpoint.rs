@@ -1,4 +1,5 @@
 use crate::amms::{
+    algebra::AlgebraFactory,
     amm::{AutomatedMarketMaker, AMM},
     balancer::BalancerFactory,
     cleo_v2::CleoV2Factory,
@@ -7,6 +8,7 @@ use crate::amms::{
     moe_v2_2::MoeV22Factory,
     uniswap_v2::UniswapV2Factory,
     uniswap_v3::UniswapV3Factory,
+    uniswap_v4::UniswapV4Factory,
 };
 use alloy::{
     primitives::Address,
@@ -163,6 +165,25 @@ where
         Factory::MoeV22Factory(f) => {
             MoeV22Factory::new(f.address, from_block, f.amm_type, f.swap_type, f.flash_type).into()
         }
+        Factory::AlgebraFactory(f) => AlgebraFactory::new(
+            f.address,
+            from_block,
+            f.sync_step,
+            f.amm_type,
+            f.swap_type,
+            f.flash_type,
+        )
+        .into(),
+        Factory::UniswapV4Factory(f) => UniswapV4Factory::new(
+            f.address,
+            from_block,
+            f.sync_step,
+            f.wrapped_native,
+            f.amm_type,
+            f.swap_type,
+            f.flash_type,
+        )
+        .into(),
     };
 
     let amms = factory.discover(to_block.into(), provider, pb).await?;

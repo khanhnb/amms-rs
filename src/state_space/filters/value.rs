@@ -97,6 +97,10 @@ where
                     AMM::UniswapV3Pool(_) => 2,
                     AMM::CleoV2Pool(_) => 1,
                     AMM::MoeV22Pool(_) => 3,
+                    // Value filter batch contract has no Algebra support
+                    AMM::AlgebraPool(_) => todo!(),
+                    // nor V4 (pools live in the PoolManager, no per-pool address)
+                    AMM::UniswapV4Pool(_) => todo!(),
                     // TODO: At the moment, filters are not compatible with vaults
                     AMM::ERC4626Vault(_) => todo!(),
                 };

@@ -99,14 +99,16 @@ async fn main() -> eyre::Result<()> {
         //     FlashType::Normal,
         // )
         // .into(),
-        // // cleo - v3
-        // UniswapV3Factory::new(
-        //     address!("0xAAA32926fcE6bE95ea2c51cB4Fcb60836D320C42"),
-        //     34705175,
-        //     10_000,
-        //     AMMType::CleoV3
-        // )
-        // .into(),
+        // cleo - v3
+        UniswapV3Factory::new(
+            address!("0xAAA32926fcE6bE95ea2c51cB4Fcb60836D320C42"),
+            34705175,
+            10_000,
+            AMMType::CleoV3,
+            SwapType::V3,
+            FlashType::Normal,
+        )
+        .into(),
         // MoeV22Factory::new(
         //     address!("0xa6630671775c4EA2743840F9A5016dCf2A104054"),
         //     61742960,
@@ -178,15 +180,15 @@ async fn main() -> eyre::Result<()> {
         //     FlashType::Normal,
         // )
         // .into(),
-        UniswapV2Factory::new(
-            address!("0xd7D3e1116277a0f8b6f23cc64D5Ea56982822Dde"),
-            25,
-            79842307,
-            AMMType::AgniV2,
-            SwapType::V2,
-            FlashType::Normal,
-        )
-        .into(),
+        // UniswapV2Factory::new(
+        //     address!("0xd7D3e1116277a0f8b6f23cc64D5Ea56982822Dde"),
+        //     25,
+        //     79842307,
+        //     AMMType::AgniV2,
+        //     SwapType::V2,
+        //     FlashType::Normal,
+        // )
+        // .into(),
     ];
 
     let mut filters: Vec<Box<dyn AMMFilter>> = vec![

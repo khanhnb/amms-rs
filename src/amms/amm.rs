@@ -51,6 +51,7 @@ pub enum AMMType {
     // ... or at slot 3 (factory 0xa87d…: one extra slot before the Algebra layout)
     AlgebraIntegralSlot3 = 24,
     UniswapV4 = 25,
+    MantleswapV2 = 26,
     #[default]
     NotSupported = 100,
 }

@@ -1039,70 +1039,15 @@ impl UniswapV3Factory {
             f.set_length(pools.len() as u64);
         });
         let mut futures: FuturesUnordered<BoxFuture<'_, _>> = FuturesUnordered::new();
-
-        let mut remaining_code_size = MAX_CODE_SIZE;
-        let mut group_range = 0;
-        let mut group = vec![];
-
-        remaining_code_size -= 32 * 2; // offset + array length
-        for pool in pools.iter() {
-            remaining_code_size -= 32 * 2; // offset + array length
-
+        let ranges = pools.iter().map(|pool| {
             let AMM::UniswapV3Pool(uniswap_v3_pool) = pool else {
                 unreachable!()
             };
-
-            let mut min_word = tick_to_word(MIN_TICK, uniswap_v3_pool.tick_spacing);
-            let max_word = tick_to_word(MAX_TICK, uniswap_v3_pool.tick_spacing);
-            let mut word_range = max_word - min_word + 1;
-
-            while word_range > 0 {
-                // let remaining_range = max_range - group_range;
-                let remaining_range = remaining_code_size / 64 - group_range;
-                let range = word_range.min(remaining_range);
-
-                group.push(TickBitmapInfo {
-                    pool: uniswap_v3_pool.address,
-                    minWord: min_word as i16,
-                    maxWord: (min_word + range) as i16,
-                });
-
-                word_range -= range + 1;
-                min_word += range + 1;
-                group_range += range + 1;
-
-                // If group is full, fire it off and reset
-                if group_range * 64 >= remaining_code_size {
-                    // if group_range >= max_range || word_range <= 0 {
-                    let provider = provider.clone();
-                    let pool_info = group.iter().map(|info| info.pool).collect::<Vec<_>>();
-
-                    let calldata = std::mem::take(&mut group);
-
-                    group_range = 0;
-
-                    futures.push(Box::pin(async move {
-                        Ok::<(Vec<Address>, Bytes), AMMError>((
-                            pool_info,
-                            GetUniswapV3PoolTickBitmapBatchRequest::deploy_builder(
-                                provider, calldata,
-                            )
-                            .call_raw()
-                            .block(block_number)
-                            .await?,
-                        ))
-                    }));
-                }
-            }
-        }
-
-        // Flush group if not empty
-        if !group.is_empty() {
+            (uniswap_v3_pool.address, uniswap_v3_pool.tick_spacing)
+        });
+        for calldata in plan_tick_bitmap_batches(ranges) {
             let provider = provider.clone();
-            let pool_info = group.iter().map(|info| info.pool).collect::<Vec<_>>();
-
-            let calldata = std::mem::take(&mut group);
-
+            let pool_info = calldata.iter().map(|info| info.pool).collect::<Vec<_>>();
             futures.push(Box::pin(async move {
                 Ok::<(Vec<Address>, Bytes), AMMError>((
                     pool_info,
@@ -1312,6 +1257,48 @@ impl UniswapV3Factory {
     }
 }
 
+/// Splits the tick bitmap words of `pools` (address, tick spacing), every word from
+/// `MIN_TICK` to `MAX_TICK`, into `GetUniswapV3PoolTickBitmapBatchRequest` batches whose
+/// return data fits in `MAX_CODE_SIZE`: 64 bytes for the outer array, then per entry 64 for
+/// its offset and length and 64 per word (position, bitmap). A pool's range can span batches.
+/// The budget is per batch: it used to be charged 64 per pool for the whole sync, went
+/// negative past ~383 pools and the word loop then never ended (unbounded memory).
+fn plan_tick_bitmap_batches(
+    pools: impl IntoIterator<Item = (Address, i32)>,
+) -> Vec<Vec<TickBitmapInfo>> {
+    const UNIT: i32 = 64;
+    let budget = MAX_CODE_SIZE - UNIT;
+    let mut batches = vec![];
+    let mut group = vec![];
+    let mut remaining = budget;
+    for (pool, tick_spacing) in pools {
+        let mut min_word = tick_to_word(MIN_TICK, tick_spacing);
+        let max_word = tick_to_word(MAX_TICK, tick_spacing);
+        let mut word_range = max_word - min_word + 1;
+        while word_range > 0 {
+            // an entry needs its header and at least one word
+            if remaining < 2 * UNIT {
+                batches.push(std::mem::take(&mut group));
+                remaining = budget;
+            }
+            remaining -= UNIT;
+            let words = word_range.min(remaining / UNIT);
+            group.push(TickBitmapInfo {
+                pool,
+                minWord: min_word as i16,
+                maxWord: (min_word + words - 1) as i16,
+            });
+            remaining -= words * UNIT;
+            min_word += words;
+            word_range -= words;
+        }
+    }
+    if !group.is_empty() {
+        batches.push(group);
+    }
+    batches
+}
+
 fn tick_to_word(tick: i32, tick_spacing: i32) -> i32 {
     let mut compressed = tick / tick_spacing;
     if tick < 0 && tick % tick_spacing != 0 {
@@ -1399,6 +1386,45 @@ impl DiscoverySync for UniswapV3Factory {
 mod test {
 
     use super::*;
+
+    #[test]
+    fn test_plan_tick_bitmap_batches_covers_every_word_within_the_code_size() {
+        // 1000 pools: past ~383 the old per-sync budget went negative and the loop never ended
+        let pools: Vec<(Address, i32)> = (0..1000u64)
+            .map(|i| {
+                (
+                    Address::left_padding_from(&i.to_be_bytes()),
+                    [1, 10, 60, 200][i as usize % 4],
+                )
+            })
+            .collect();
+        let batches = plan_tick_bitmap_batches(pools.iter().copied());
+        let mut covered: HashMap<Address, Vec<(i32, i32)>> = HashMap::new();
+        for batch in &batches {
+            let words: i32 = batch
+                .iter()
+                .map(|info| i32::from(info.maxWord) - i32::from(info.minWord) + 1)
+                .sum();
+            assert!(64 + 64 * batch.len() as i32 + 64 * words <= MAX_CODE_SIZE);
+            for info in batch {
+                assert!(info.maxWord >= info.minWord);
+                covered
+                    .entry(info.pool)
+                    .or_default()
+                    .push((info.minWord.into(), info.maxWord.into()));
+            }
+        }
+        for (pool, tick_spacing) in pools {
+            let mut ranges = covered.remove(&pool).unwrap();
+            ranges.sort();
+            let mut next = tick_to_word(MIN_TICK, tick_spacing);
+            for (min, max) in ranges {
+                assert_eq!(min, next, "gap or overlap in {pool}");
+                next = max + 1;
+            }
+            assert_eq!(next, tick_to_word(MAX_TICK, tick_spacing) + 1);
+        }
+    }
 
     use alloy::{
         primitives::{address, aliases::U24, U160, U256},
